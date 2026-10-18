@@ -269,10 +269,13 @@
       <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4"></div>
     </section>
 
-    <!-- FINALIZAR & COMPARTILHAR -->
+    <!-- FINALIZAR, COMPARTILHAR & EXPORTAR EXCEL -->
     <section class="space-y-3 no-print">
-      <button onclick="gerarECompartilharRelatorio()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
-        📄 Gerar & Compartilhar Relatório
+      <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+        📤 Compartilhar Relatório + Fotos
+      </button>
+      <button onclick="exportarParaExcel()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
+        📊 Exportar Dados para Excel (.CSV)
       </button>
     </section>
 
@@ -528,11 +531,13 @@
       ctx.fillText(`${categoria.toUpperCase()} | DT: ${dt}`, 10, canvas.height - 25);
       ctx.fillText(`Data/Hora: ${dataHora}`, 10, canvas.height - 8);
 
-      const urlData = canvas.toDataURL('image/jpeg');
-      fotosCapturadas.push({ url: urlData, cat: categoria, data: dataHora });
-
-      renderizarGaleriaFotos();
-      fecharCameraFoto();
+      canvas.toBlob((blob) => {
+        const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const urlData = canvas.toDataURL('image/jpeg');
+        fotosCapturadas.push({ url: urlData, file: file, cat: categoria, data: dataHora });
+        renderizarGaleriaFotos();
+        fecharCameraFoto();
+      }, 'image/jpeg', 0.9);
     }
 
     function renderizarGaleriaFotos() {
@@ -546,10 +551,11 @@
       `).join('');
     }
 
-    async function gerarECompartilharRelatorio() {
+    // COMPARTILHAR RELATÓRIO COM FOTOS REAIS
+    async function gerarECompartilharRelatorioComFotos() {
       const dt = document.getElementById('op_dt').value || 'SemDT';
       const placa = document.getElementById('op_placa').value || 'SemPlaca';
-      const textoResumo = `📋 *RELATÓRIO DE EXPEDIÇÃO - CONFERÊNCIA CARGA*\n\n` +
+      const textoResumo = `📋 *RELATÓRIO DE CONFERÊNCIA DE CARGA*\n\n` +
         `🚛 *DT:* ${dt}\n` +
         `🚚 *Placa:* ${placa}\n` +
         `👤 *Operador:* ${document.getElementById('op_nome').value || '-'}\n` +
@@ -559,18 +565,59 @@
         `📸 *Fotos Anexadas:* ${fotosCapturadas.length}\n` +
         `✅ *Parecer:* ${document.getElementById('parecer_veiculo').value}`;
 
-      if (navigator.share) {
+      if (navigator.canShare) {
         try {
-          await navigator.share({
+          const arquivos = fotosCapturadas.map(f => f.file).filter(Boolean);
+          const dadosShare = {
             title: `Relatório de Expedição DT ${dt}`,
-            text: textoResumo
-          });
+            text: textoResumo,
+          };
+          if (arquivos.length > 0 && navigator.canShare({ files: arquivos })) {
+            dadosShare.files = arquivos;
+          }
+          await navigator.share(dadosShare);
+          return;
         } catch (e) {
-          window.print();
+          console.log("Compartilhamento com arquivos cancelado ou não suportado, abrindo impressão.", e);
         }
-      } else {
-        window.print();
       }
+      window.print();
+    }
+
+    // EXPORTAR PARA EXCEL (.CSV FORMATADO)
+    function exportarParaExcel() {
+      const dt = document.getElementById('op_dt').value || 'SemDT';
+      let csvContent = "\uFEFF"; // BOM para acentuação UTF-8 no Excel
+
+      csvContent += "DADOS DA CARGA\n";
+      csvContent += `Documento de Transporte (DT);${dt}\n`;
+      csvContent += `Placa do Veículo;${document.getElementById('op_placa').value || ''}\n`;
+      csvContent += `Operador;${document.getElementById('op_nome').value || ''}\n`;
+      csvContent += `Transportadora;${document.getElementById('op_transportadora').value || ''}\n`;
+      csvContent += `Turno;${document.getElementById('op_turno').value || ''}\n`;
+      csvContent += `Parecer Veículo;${document.getElementById('parecer_veiculo').value || ''}\n\n`;
+
+      csvContent += "ITENS CONFERIDOS\n";
+      csvContent += "Material;Descrição;Lote;Fabricação;Vencimento;Qtde Cx;Qtde Un;UD;Posição\n";
+      itensConferidos.forEach(it => {
+        csvContent += `"${it.mat}";"${it.desc || ''}";"${it.lote}";"${it.fab || ''}";"${it.venc || ''}";"${it.qtdCx}";"${it.qtdUn || ''}";"${it.ud || ''}";"${it.pos || ''}"\n`;
+      });
+      csvContent += "\n";
+
+      csvContent += "NÃO CONFORMIDADES (RNC)\n";
+      csvContent += "Descrição;Ação Corretiva;Nº RNC;Responsável;Horário\n";
+      listaRNCs.forEach(r => {
+        csvContent += `"${r.desc}";"${r.corr || ''}";"${r.num || ''}";"${r.resp || ''}";"${r.data}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Conferencia_Carga_DT_${dt}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
     function abrirConfigSupabase() {
