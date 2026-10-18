@@ -10,16 +10,13 @@
     .watermark-canvas { display: none; }
     #interactive video { width: 100%; height: 100%; object-fit: cover; }
     
-    /* Animação de entrada suave (Fade In de 3.5 segundos) */
-    @keyframes fadeIn {
-      0% { opacity: 0; transform: scale(0.96); }
-      100% { opacity: 1; transform: scale(1); }
+    /* Estado inicial: conteúdo principal escondido para evitar piscar na abertura */
+    #conteudo_principal, header {
+      opacity: 0;
+      transition: opacity 0.8s ease-in;
     }
-    .splash-fade {
-      animation: fadeIn 3.5s ease-in-out forwards;
-    }
-
-    /* Padrão visual do fundo estilo Tirol (fundo vermelho com círculos/ícones) */
+    
+    /* Padrão visual do fundo estilo Tirol (fundo vermelho com círculos) */
     .bg-tirol {
       background-color: #c8102e;
       background-image: radial-gradient(rgba(255, 255, 255, 0.15) 15%, transparent 16%), radial-gradient(rgba(255, 255, 255, 0.15) 15%, transparent 16%);
@@ -37,24 +34,21 @@
 </head>
 <body class="bg-gray-100 text-gray-800 pb-12">
 
-  <!-- TELA DE ABERTURA (SPLASH SCREEN PERFEITA DA TIROL) -->
-  <div id="splash_screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-tirol p-6 text-white splash-fade">
-    
-    <!-- Cartão Branco Arredondado com a Logo Real e Vetorial da Tirol -->
-    <div class="w-72 h-72 bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center mb-6">
-      <svg class="w-full h-auto" viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg">
-        <!-- Logo Vetorial Tirol Red/Branco -->
-        <path fill="#c8102e" d="M25 20 C20 20 15 25 15 30 L15 50 L5 50 C2 50 0 52 0 55 L0 65 C0 68 2 70 5 70 L15 70 L15 95 C15 102 22 108 30 108 L45 108 C52 108 58 102 58 95 L58 70 L75 70 C78 70 80 68 80 65 L80 55 C80 52 78 50 75 50 L58 50 L58 35 C58 27 50 20 40 20 Z" />
-        <text x="160" y="82" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="70" text-anchor="middle" fill="#c8102e" letter-spacing="-2">TiROL</text>
+  <!-- TELA DE ABERTURA (SPLASH SCREEN LIMPA - APENAS TEXTO TIROL) -->
+  <div id="splash_screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-tirol p-6 text-white">
+    <div class="w-64 h-52 bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center mb-6">
+      <!-- Apenas a escrita TIROL centralizada e limpa -->
+      <svg class="w-full h-auto" viewBox="0 0 300 90" xmlns="http://www.w3.org/2000/svg">
+        <text x="150" y="65" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="75" text-anchor="middle" fill="#c8102e" letter-spacing="-2">TiROL</text>
       </svg>
-      <span class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-3">DESDE 1974</span>
+      <span class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-2">DESDE 1974</span>
     </div>
 
     <!-- Título do Aplicativo -->
     <h1 class="text-2xl font-black tracking-wider uppercase text-white drop-shadow-md">CONFERÊNCIA CARGA</h1>
     <p class="text-xs text-red-100 font-bold tracking-widest uppercase mt-1">GESTÃO DE LOGÍSTICA & QUALIDADE</p>
 
-    <!-- Barra de Progresso Suave -->
+    <!-- Barra de Progresso Animada -->
     <div class="w-48 h-1.5 bg-red-900/50 rounded-full mt-8 overflow-hidden">
       <div class="h-full bg-white rounded-full animate-pulse" style="width: 100%;"></div>
     </div>
@@ -379,17 +373,22 @@
       renderizarChecklist('checklist_veiculo', itensVeiculo);
       renderizarChecklist('checklist_carregamento', itensCarregamento);
 
-      // Transição de saída da Splash Screen
+      // Controla a abertura perfeita: Splash visível de início, depois revela o app suavemente
       setTimeout(() => {
         const splash = document.getElementById('splash_screen');
+        const conteudo = document.getElementById('conteudo_principal');
+        const header = document.querySelector('header');
+
         if (splash) {
-          splash.style.transition = "opacity 1s ease";
+          splash.style.transition = "opacity 0.8s ease";
           splash.style.opacity = "0";
           setTimeout(() => {
             splash.style.display = "none";
-          }, 1000);
+            if (conteudo) conteudo.style.opacity = "1";
+            if (header) header.style.opacity = "1";
+          }, 800);
         }
-      }, 3500);
+      }, 3000);
     };
 
     function renderizarChecklist(idContainer, itens) {
