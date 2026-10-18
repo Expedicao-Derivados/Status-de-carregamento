@@ -64,10 +64,10 @@
       </div>
     </section>
 
-    <!-- 2. SCANNER & CONFERÊNCIA DE PRODUTOS -->
+    <!-- 2. SCANNER & CONFERÊNCIA DE PRODUTOS (LAYOUT FIEL À ETIQUETA) -->
     <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
       <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
-        <span>📦</span> 2. Conferência de Material & Lote
+        <span>🏷️</span> 2. Conferência de Etiqueta / Palete
       </h2>
 
       <!-- Botão Scanner de Etiquetas -->
@@ -75,31 +75,65 @@
         📷 Escanear Etiqueta do Produto
       </button>
 
-      <!-- Form Material/Lote/Qtd -->
+      <!-- Form Detalhado da Etiqueta -->
       <div class="space-y-3 text-sm">
-        <div>
-          <label class="block font-semibold mb-1">Cód. Material / SKU</label>
-          <input type="text" id="item_material" placeholder="Ex: 1000179 (Mussarela)" class="w-full p-2 border rounded font-mono font-bold">
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-1">
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Material</label>
+            <input type="text" id="item_material" placeholder="1002161" class="w-full p-2 border rounded font-mono font-bold text-blue-900 bg-gray-50">
+          </div>
+          <div class="col-span-2">
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Descrição do Produto</label>
+            <input type="text" id="item_descricao" placeholder="REQUEIJAO CULINARIO 1,01KG" class="w-full p-2 border rounded font-bold uppercase text-xs">
+          </div>
         </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Lote</label>
+            <input type="text" id="item_lote" placeholder="00060" class="w-full p-2 border rounded font-mono font-bold text-amber-900">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Fabricação</label>
+            <input type="text" id="item_fabricacao" placeholder="01.09.2026" class="w-full p-2 border rounded font-mono text-xs">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Vencimento</label>
+            <input type="text" id="item_vencimento" placeholder="30.12.2026" class="w-full p-2 border rounded font-mono text-xs text-red-700 font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 bg-blue-50 p-2 rounded border border-blue-100">
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-blue-900">QTDE CX PALLET</label>
+            <input type="text" id="item_qtd_cx" placeholder="104,833" class="w-full p-2 border rounded font-bold text-blue-900 bg-white">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-blue-900">QTDE UN PALLET</label>
+            <input type="text" id="item_qtd_un" placeholder="629,000" class="w-full p-2 border rounded font-bold text-blue-900 bg-white">
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-semibold mb-1">Lote</label>
-            <input type="text" id="item_lote" placeholder="Ex: 00946" class="w-full p-2 border rounded font-mono font-bold">
+            <label class="block font-semibold mb-1 text-xs text-gray-600">UD (Cód. Barras)</label>
+            <input type="text" id="item_ud" placeholder="1009038047" class="w-full p-2 border rounded font-mono text-xs">
           </div>
           <div>
-            <label class="block font-semibold mb-1">Quantidade (Cx/Un)</label>
-            <input type="number" id="item_qtd" placeholder="Ex: 30" class="w-full p-2 border rounded font-bold">
+            <label class="block font-semibold mb-1 text-xs text-gray-600">Posição / Endereço</label>
+            <input type="text" id="item_posicao" placeholder="P11 C3" class="w-full p-2 border rounded font-bold text-xs uppercase bg-yellow-50">
           </div>
         </div>
-        <button onclick="adicionarItemConferido()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded">
-          + Adicionar Item Conferido
+
+        <button onclick="adicionarItemConferido()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded shadow">
+          + Confirmar e Inserir Item
         </button>
       </div>
 
       <!-- Lista de Itens Conferidos -->
       <div class="mt-4">
-        <h3 class="font-semibold text-xs uppercase text-gray-500 mb-2">Itens Inseridos:</h3>
-        <ul id="lista_itens" class="divide-y divide-gray-200 text-sm">
+        <h3 class="font-semibold text-xs uppercase text-gray-500 mb-2">Itens Conferidos na Carga:</h3>
+        <ul id="lista_itens" class="divide-y divide-gray-200 text-xs">
           <li class="py-2 text-gray-400 text-center italic">Nenhum item adicionado ainda.</li>
         </ul>
       </div>
@@ -138,19 +172,15 @@
         <!-- Checklist C / NC / NA -->
         <div>
           <h3 class="font-bold text-gray-700 text-xs uppercase mb-2">Condições do Veículo</h3>
-          <div class="space-y-2" id="checklist_veiculo">
-            <!-- Gerado Dinamicamente -->
-          </div>
+          <div class="space-y-2" id="checklist_veiculo"></div>
         </div>
 
         <div>
           <h3 class="font-bold text-gray-700 text-xs uppercase mb-2">Condições do Carregamento</h3>
-          <div class="space-y-2" id="checklist_carregamento">
-            <!-- Gerado Dinamicamente -->
-          </div>
+          <div class="space-y-2" id="checklist_carregamento"></div>
         </div>
 
-        <!-- Parecer Veiculo -->
+        <!-- Parecer Veículo -->
         <div class="pt-2">
           <label class="block font-bold mb-1">Avaliação Final do Veículo:</label>
           <select id="parecer_veiculo" class="w-full p-2 border rounded font-bold bg-white">
@@ -174,7 +204,7 @@
           <input type="text" id="rnc_desc" placeholder="Ex: Palete com cantoneira amassada" class="w-full p-2 border rounded">
         </div>
         <div>
-          <label class="block font-semibold mb-1">Ação Corrediva / Atalhos Rápidos</label>
+          <label class="block font-semibold mb-1">Ação Corretiva / Atalhos Rápidos</label>
           <select id="rnc_correcao_atalho" onchange="selecionarAtalhoRNC(this.value)" class="w-full p-2 border rounded bg-white text-xs mb-1">
             <option value="">-- Selecione uma correção predefinida --</option>
             <option value="Solicitar limpeza com vassoura">Solicitar limpeza com vassoura</option>
@@ -221,9 +251,7 @@
       </button>
 
       <!-- Mídia de Fotos Tiradas -->
-      <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4">
-        <!-- Fotos anexadas aparecem aqui -->
-      </div>
+      <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4"></div>
     </section>
 
     <!-- FINALIZAR -->
@@ -319,14 +347,14 @@
       `).join('');
     }
 
-    // SCANNER ETIQUETA
+    // SCANNER ETIQUETA COM EXTRAÇÃO COMPLETA DOS CAMPOS
     async function iniciarScannerEtiqueta() {
       document.getElementById('modal_scanner').classList.remove('hidden');
       codeReader = new ZXing.BrowserMultiFormatReader();
       try {
         await codeReader.decodeFromVideoDevice(null, 'video_scanner', (result, err) => {
           if (result) {
-            tratarLeituraEtiqueta(result.text);
+            tratarLeituraEtiquetaCompleta(result.text);
             fecharScanner();
           }
         });
@@ -336,16 +364,27 @@
       }
     }
 
-    function tratarLeituraEtiqueta(texto) {
-      // Tenta extrair material, lote e quantidade se houver formato padrão
-      if (texto.includes("Material:") || texto.includes("LOTE:")) {
-        const mat = texto.match(/Material:\s*(\d+)/i);
-        const lote = texto.match(/LOTE:\s*(\w+)/i);
-        const qtd = texto.match(/QTDE.*:\s*(\d+)/i);
-        if (mat) document.getElementById('item_material').value = mat[1];
-        if (lote) document.getElementById('item_lote').value = lote[1];
-        if (qtd) document.getElementById('item_qtd').value = qtd[1];
-      } else {
+    function tratarLeituraEtiquetaCompleta(texto) {
+      // Extração inteligente de campos da etiqueta
+      const mat = texto.match(/Material:\s*(\d+)/i);
+      const lote = texto.match(/LOTE:\s*(\w+)/i);
+      const fab = texto.match(/FABRICACAO:\s*([\d\.]+)/i);
+      const venc = texto.match(/VENCIMENTO:\s*([\d\.]+)/i);
+      const un = texto.match(/QTDE UN PALLET:\s*([\d\.,]+)/i);
+      const cx = texto.match(/QTDE CX PALLET:\s*([\d\.,]+)/i);
+      const ud = texto.match(/UD:\s*(\d+)/i);
+      const pos = texto.match(/(P\d+\s*C\d+)/i);
+
+      if (mat) document.getElementById('item_material').value = mat[1];
+      if (lote) document.getElementById('item_lote').value = lote[1];
+      if (fab) document.getElementById('item_fabricacao').value = fab[1];
+      if (venc) document.getElementById('item_vencimento').value = venc[1];
+      if (un) document.getElementById('item_qtd_un').value = un[1];
+      if (cx) document.getElementById('item_qtd_cx').value = cx[1];
+      if (ud) document.getElementById('item_ud').value = ud[1];
+      if (pos) document.getElementById('item_posicao').value = pos[1];
+
+      if (!mat && !lote) {
         document.getElementById('item_material').value = texto;
       }
     }
@@ -358,20 +397,27 @@
     // CONFERÊNCIA DE ITENS
     function adicionarItemConferido() {
       const mat = document.getElementById('item_material').value;
+      const desc = document.getElementById('item_descricao').value;
       const lote = document.getElementById('item_lote').value;
-      const qtd = document.getElementById('item_qtd').value;
+      const fab = document.getElementById('item_fabricacao').value;
+      const venc = document.getElementById('item_vencimento').value;
+      const qtdCx = document.getElementById('item_qtd_cx').value;
+      const qtdUn = document.getElementById('item_qtd_un').value;
+      const ud = document.getElementById('item_ud').value;
+      const pos = document.getElementById('item_posicao').value;
 
-      if (!mat || !lote || !qtd) {
-        alert("Preencha Material, Lote e Quantidade!");
+      if (!mat || !lote || !qtdCx) {
+        alert("Preencha ao menos Material, Lote e Quantidade de Caixas!");
         return;
       }
 
-      itensConferidos.push({ mat, lote, qtd });
+      itensConferidos.push({ mat, desc, lote, fab, venc, qtdCx, qtdUn, ud, pos });
       atualizarListaItens();
 
-      document.getElementById('item_material').value = '';
-      document.getElementById('item_lote').value = '';
-      document.getElementById('item_qtd').value = '';
+      // Limpa campos
+      ['item_material','item_descricao','item_lote','item_fabricacao','item_vencimento','item_qtd_cx','item_qtd_un','item_ud','item_posicao'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
     }
 
     function atualizarListaItens() {
@@ -381,12 +427,14 @@
         return;
       }
       el.innerHTML = itensConferidos.map((it, idx) => `
-        <li class="py-2 flex justify-between items-center">
+        <li class="py-2 border-b flex justify-between items-start">
           <div>
-            <span class="font-bold text-blue-900">${it.mat}</span> - Lote: <span class="font-mono">${it.lote}</span>
+            <div class="font-bold text-blue-900">${it.mat} - ${it.desc || 'Sem Descrição'}</div>
+            <div class="text-gray-600">Lote: <span class="font-bold">${it.lote}</span> | Val: ${it.venc || '-'} | Pos: ${it.pos || '-'}</div>
+            <div class="text-gray-500 text-[10px]">UD: ${it.ud || '-'}</div>
           </div>
           <div class="flex items-center gap-2">
-            <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-xs">${it.qtd} cx</span>
+            <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">${it.qtdCx} cx</span>
             <button onclick="removerItem(${idx})" class="text-red-500 font-bold px-1">✕</button>
           </div>
         </li>
