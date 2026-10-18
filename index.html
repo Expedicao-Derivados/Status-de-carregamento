@@ -256,4 +256,46 @@
             <option value="Foto de Palete Inteiro">📦 Foto de Palete Inteiro / Stretch</option>
             <option value="Foto de Etiqueta">🏷️ Foto de Etiqueta de Lote</option>
             <option value="Foto de Baú / Lacre">🚛 Foto de Baú / Lacre / Termômetro</option>
-            <option value="Foto de A
+            <option value="Foto de Avaria / RNC">⚠️ Foto de Avaria / Não Conformidade</option>
+          </select>
+        </div>
+
+        <button onclick="abrirCameraAoVivo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow flex items-center justify-center gap-2">
+          📷 Capturar Foto (Câmera AO VIVO)
+        </button>
+      </div>
+
+      <!-- Mídia de Fotos Tiradas -->
+      <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4"></div>
+    </section>
+
+    <!-- FINALIZAR & COMPARTILHAR -->
+    <section class="space-y-3 no-print">
+      <button onclick="gerarECompartilharRelatorio()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+        📄 Gerar & Compartilhar Relatório
+      </button>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE CÂMERA SCANNER DE ETIQUETA -->
+  <div id="modal_scanner" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="text-white text-center mb-2 font-bold">Aproxime o código de barras ou QR Code da etiqueta</div>
+    <div class="relative w-full max-w-sm h-64 bg-black rounded-lg overflow-hidden border-2 border-green-500">
+      <video id="video_scanner" class="w-full h-full object-cover"></video>
+    </div>
+    <button onclick="fecharScanner()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-full font-bold">
+      Fechar Scanner
+    </button>
+  </div>
+
+  <!-- MODAL DE CÂMERA FOTO AO VIVO -->
+  <div id="modal_camera_foto" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="relative w-full max-w-sm h-96 bg-black rounded-lg overflow-hidden border-2 border-indigo-500">
+      <video id="video_foto" class="w-full h-full object-cover"></video>
+    </div>
+    <div class="flex gap-4 mt-4">
+      <button onclick="capturarFotoComCarimbo()" class="bg-indigo-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+        📸 Tirar Foto
+      </button>
+      <button onclick="fecharCameraFoto()" class="bg-gray-600 text-white px
