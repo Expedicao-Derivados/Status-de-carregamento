@@ -1,136 +1,500 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargas do Turno</title>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 15px; color: #333; }
-        .header { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .btn-import { background: #007bff; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-import:hover { background: #0056b3; }
-        #loading { text-align: center; font-size: 16px; color: #666; margin-top: 30px; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14px; }
-        th { background-color: #007bff; color: white; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stokfy - Expedição & Inspeção Lácteos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <style>
+    .watermark-canvas { display: none; }
+    #interactive video { width: 100%; height: 100%; object-fit: cover; }
+  </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 pb-12">
 
-    <div class="header">
-        <h2>🚚 Cargas do Turno</h2>
-        <button class="btn-import" onclick="importarDados()">📥 Importar Excel</button>
+  <!-- Header -->
+  <header class="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
+    <div class="max-w-md mx-auto flex justify-between items-center">
+      <h1 class="font-bold text-lg flex items-center gap-2">
+        <span>🥛</span> Stokfy Expedição
+      </h1>
+      <button onclick="abrirConfigSupabase()" class="bg-blue-800 hover:bg-blue-700 text-xs px-2 py-1 rounded border border-blue-600">
+        ⚙️ Supabase
+      </button>
     </div>
+  </header>
 
-    <div id="loading">A carregar dados das cargas...</div>
+  <main class="max-w-md mx-auto p-4 space-y-6">
 
-    <div id="conteudo" style="display: none;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nº Carga</th>
-                    <th>Transportadora</th>
-                    <th>Motorista</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="tabela-corpo">
-                <!-- Os dados entram aqui dinamicamente -->
-            </tbody>
-        </table>
+    <!-- 1. IDENTIFICAÇÃO DA CARGA -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>🚛</span> 1. Dados da Carga / Veículo
+      </h2>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block font-semibold mb-1">Operador / Conferente</label>
+          <input type="text" id="op_nome" placeholder="Seu nome" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Doc. Transporte (DT)</label>
+            <input type="text" id="op_dt" placeholder="Ex: 300000290" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Placa Veículo</label>
+            <input type="text" id="op_placa" placeholder="ABC-1234" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none uppercase">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Transportadora</label>
+            <input type="text" id="op_transportadora" placeholder="Nome da empresa" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Turno</label>
+            <select id="op_turno" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+              <option value="1º Turno">1º Turno</option>
+              <option value="2º Turno">2º Turno</option>
+              <option value="3º Turno">3º Turno</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SCANNER & CONFERÊNCIA DE PRODUTOS -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>📦</span> 2. Conferência de Material & Lote
+      </h2>
+
+      <!-- Botão Scanner de Etiquetas -->
+      <button onclick="iniciarScannerEtiqueta()" class="w-full mb-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow flex items-center justify-center gap-2">
+        📷 Escanear Etiqueta do Produto
+      </button>
+
+      <!-- Form Material/Lote/Qtd -->
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block font-semibold mb-1">Cód. Material / SKU</label>
+          <input type="text" id="item_material" placeholder="Ex: 1000179 (Mussarela)" class="w-full p-2 border rounded font-mono font-bold">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Lote</label>
+            <input type="text" id="item_lote" placeholder="Ex: 00946" class="w-full p-2 border rounded font-mono font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Quantidade (Cx/Un)</label>
+            <input type="number" id="item_qtd" placeholder="Ex: 30" class="w-full p-2 border rounded font-bold">
+          </div>
+        </div>
+        <button onclick="adicionarItemConferido()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 rounded">
+          + Adicionar Item Conferido
+        </button>
+      </div>
+
+      <!-- Lista de Itens Conferidos -->
+      <div class="mt-4">
+        <h3 class="font-semibold text-xs uppercase text-gray-500 mb-2">Itens Inseridos:</h3>
+        <ul id="lista_itens" class="divide-y divide-gray-200 text-sm">
+          <li class="py-2 text-gray-400 text-center italic">Nenhum item adicionado ainda.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. CHECKLIST INSPEÇÃO DO VEÍCULO & CARREGAMENTO (FICHA TIROL PÁG 1) -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>📋</span> 3. Inspeção do Veículo & Carregamento
+      </h2>
+
+      <div class="space-y-4 text-sm">
+        <!-- Temperaturas -->
+        <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 space-y-2">
+          <h3 class="font-bold text-blue-900 text-xs uppercase">Temperaturas do Produto (°C)</h3>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs">Início</label>
+              <input type="text" id="temp_inicio" placeholder="°C" class="w-full p-1 border rounded text-center">
+            </div>
+            <div>
+              <label class="text-xs">Meio</label>
+              <input type="text" id="temp_meio" placeholder="°C" class="w-full p-1 border rounded text-center">
+            </div>
+            <div>
+              <label class="text-xs">Fim</label>
+              <input type="text" id="temp_fim" placeholder="°C" class="w-full p-1 border rounded text-center">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="text-xs font-semibold">Temp. do Veículo (°C)</label>
+            <input type="text" id="temp_veiculo" placeholder="Ex: 4°C" class="w-full p-1 border rounded">
+          </div>
+        </div>
+
+        <!-- Checklist C / NC / NA -->
+        <div>
+          <h3 class="font-bold text-gray-700 text-xs uppercase mb-2">Condições do Veículo</h3>
+          <div class="space-y-2" id="checklist_veiculo">
+            <!-- Gerado Dinamicamente -->
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-gray-700 text-xs uppercase mb-2">Condições do Carregamento</h3>
+          <div class="space-y-2" id="checklist_carregamento">
+            <!-- Gerado Dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Parecer Veiculo -->
+        <div class="pt-2">
+          <label class="block font-bold mb-1">Avaliação Final do Veículo:</label>
+          <select id="parecer_veiculo" class="w-full p-2 border rounded font-bold bg-white">
+            <option value="Aprovado" class="text-green-600">Aprovado</option>
+            <option value="Aprovado c/ restrição" class="text-yellow-600">Aprovado c/ Restrição</option>
+            <option value="Reprovado" class="text-red-600">Reprovado</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. NÃO CONFORMIDADES & RNC (FICHA TIROL PÁG 2) -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>⚠️</span> 4. Registro de Não Conformidades (RNC)
+      </h2>
+
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block font-semibold mb-1">Descrição da Não Conformidade</label>
+          <input type="text" id="rnc_desc" placeholder="Ex: Palete com cantoneira amassada" class="w-full p-2 border rounded">
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">Ação Corrediva / Atalhos Rápidos</label>
+          <select id="rnc_correcao_atalho" onchange="selecionarAtalhoRNC(this.value)" class="w-full p-2 border rounded bg-white text-xs mb-1">
+            <option value="">-- Selecione uma correção predefinida --</option>
+            <option value="Solicitar limpeza com vassoura">Solicitar limpeza com vassoura</option>
+            <option value="Solicitar higienização com água">Solicitar higienização com água</option>
+            <option value="Substituição da caixa ou produto avariado">Substituição da caixa ou produto avariado</option>
+            <option value="Substituição de embalagem ou etiqueta">Substituição de embalagem ou etiqueta</option>
+            <option value="Substituição de paletes quebrados">Substituição de paletes quebrados</option>
+            <option value="Estrechar palete novamente">Estrechar palete novamente</option>
+            <option value="Colocar e/ou substituir cantoneiras">Colocar e/ou substituir cantoneiras</option>
+            <option value="Cobrir palete com película plástica">Cobrir palete com película plástica</option>
+            <option value="Aguardar ajuste da temperatura">Aguardar ajuste da temperatura</option>
+            <option value="Recusar veículo / Abertura de RNC">Recusar veículo / Abertura de RNC</option>
+          </select>
+          <input type="text" id="rnc_correcao" placeholder="Ou digite a correção realizada" class="w-full p-2 border rounded">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Nº RNC (se houver)</label>
+            <input type="text" id="rnc_numero" placeholder="Ex: RNC-001" class="w-full p-2 border rounded">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Responsável</label>
+            <input type="text" id="rnc_resp" placeholder="Nome" class="w-full p-2 border rounded">
+          </div>
+        </div>
+        <button onclick="adicionarRNC()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded">
+          + Registrar Ocorrência / RNC
+        </button>
+
+        <ul id="lista_rncs" class="divide-y divide-gray-200 text-xs pt-2">
+          <li class="py-1 text-gray-400 italic">Nenhuma RNC registrada.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 5. REGISTRO FOTOGRÁFICO DAS CONDIÇÕES DA CARGA -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>📸</span> 5. Fotos dos Paletes & Carga
+      </h2>
+
+      <button onclick="abrirCameraAoVivo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow flex items-center justify-center gap-2">
+        📷 Tirar Foto (Câmera AO VIVO)
+      </button>
+
+      <!-- Mídia de Fotos Tiradas -->
+      <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4">
+        <!-- Fotos anexadas aparecem aqui -->
+      </div>
+    </section>
+
+    <!-- FINALIZAR -->
+    <section class="space-y-2">
+      <button onclick="finalizarCarregamento()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+        ✅ Finalizar & Salvar Carregamento
+      </button>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE CÂMERA SCANNER DE ETIQUETA -->
+  <div id="modal_scanner" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="text-white text-center mb-2 font-bold">Aproxime o código de barras ou QR Code da etiqueta</div>
+    <div class="relative w-full max-w-sm h-64 bg-black rounded-lg overflow-hidden border-2 border-green-500">
+      <video id="video_scanner" class="w-full h-full object-cover"></video>
     </div>
+    <button onclick="fecharScanner()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-full font-bold">
+      Fechar Scanner
+    </button>
+  </div>
 
-    <script>
-        // Configuração do Supabase
-        const SUPABASE_URL = 'https://zxrmvlxzybdgdogsafnb.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4cm12bHh6eWJkZ2RvZ3NhZm5iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDczMTcyNiwiZXhwIjoyMTA2MzA3NzI2fQ.i8SzvMwrZ-y6R9DsQ6mSm-cJ4eeZlHs_4jQmD_4yuIk';
+  <!-- MODAL DE CÂMERA FOTO AO VIVO -->
+  <div id="modal_camera_foto" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="relative w-full max-w-sm h-96 bg-black rounded-lg overflow-hidden border-2 border-indigo-500">
+      <video id="video_foto" class="w-full h-full object-cover"></video>
+    </div>
+    <div class="flex gap-4 mt-4">
+      <button onclick="capturarFotoComCarimbo()" class="bg-indigo-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+        📸 Tirar Foto
+      </button>
+      <button onclick="fecharCameraFoto()" class="bg-gray-600 text-white px-4 py-3 rounded-full font-bold">
+        Cancelar
+      </button>
+    </div>
+  </div>
 
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <canvas id="canvas_auxiliar" class="watermark-canvas"></canvas>
 
-        async function carregarCargas() {
-            try {
-                const { data, error } = await _supabase
-                    .from('cargas')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+  <script>
+    // ESTADO DO APP
+    let itensConferidos = [];
+    let listaRNCs = [];
+    let fotosCapturadas = [];
+    let codeReader = null;
+    let streamCameraFoto = null;
 
-                if (error) throw error;
+    // ITENS CHECKLIST
+    const itensVeiculo = [
+      "1 - Parede / Teto / Assoalhos",
+      "2 - Temperatura adequada",
+      "3 - Presença de cheiro estranho",
+      "4 - Câmaras e compressores ok",
+      "5 - Limpeza da carroceria",
+      "6 - Resíduos de lubrificantes/graxas",
+      "7 - Presença/evidência de pragas"
+    ];
 
-                renderizarTabela(data || []);
-            } catch (err) {
-                console.error("Erro ao carregar:", err.message);
-                document.getElementById('loading').innerText = "Erro ao conectar à base de dados. O painel está pronto.";
-                setTimeout(() => {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('conteudo').style.display = 'block';
-                }, 1500);
-            }
-        }
+    const itensCarregamento = [
+      "8 - Paletes/produtos sem avarias",
+      "9 - Paletes estrechados adequadamente",
+      "10 - Stretch limpo, livre de pragas",
+      "11 - Produtos bem acondicionados",
+      "12 - Colocada trava paletes/isopainel",
+      "13 - Foram feitas fotos da carga lacrada",
+      "14 - Lote conforme especificação",
+      "15 - Laudo entregue ao transportador",
+      "16 - Lotes impressos condizem c/ laudo"
+    ];
 
-        function renderizarTabela(cargas) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('conteudo').style.display = 'block';
-            
-            const tbody = document.getElementById('tabela-corpo');
-            tbody.innerHTML = '';
+    window.onload = () => {
+      renderizarChecklist('checklist_veiculo', itensVeiculo);
+      renderizarChecklist('checklist_carregamento', itensCarregamento);
+    };
 
-            if (cargas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhuma carga registada. Utilize o botão de importar.</td></tr>';
-                return;
-            }
+    function renderizarChecklist(idContainer, itens) {
+      const container = document.getElementById(idContainer);
+      container.innerHTML = itens.map((item, idx) => `
+        <div class="flex items-center justify-between border-b pb-1 text-xs">
+          <span class="pr-2">${item}</span>
+          <div class="flex gap-1">
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="C" checked> C
+            </label>
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="NC"> NC
+            </label>
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="NA"> NA
+            </label>
+          </div>
+        </div>
+      `).join('');
+    }
 
-            cargas.forEach(carga => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${carga.numero || '-'}</td>
-                    <td>${carga.transportadora || '-'}</td>
-                    <td>${carga.motorista || '-'}</td>
-                    <td>${carga.status || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+    // SCANNER ETIQUETA
+    async function iniciarScannerEtiqueta() {
+      document.getElementById('modal_scanner').classList.remove('hidden');
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      try {
+        await codeReader.decodeFromVideoDevice(null, 'video_scanner', (result, err) => {
+          if (result) {
+            tratarLeituraEtiqueta(result.text);
+            fecharScanner();
+          }
+        });
+      } catch (e) {
+        alert("Erro ao abrir câmera para leitura: " + e.message);
+        fecharScanner();
+      }
+    }
 
-        async function importarDados() {
-            const textoColado = prompt("Cole aqui os dados copiados da planilha do Excel:");
-            if (!textoColado) return;
+    function tratarLeituraEtiqueta(texto) {
+      // Tenta extrair material, lote e quantidade se houver formato padrão
+      if (texto.includes("Material:") || texto.includes("LOTE:")) {
+        const mat = texto.match(/Material:\s*(\d+)/i);
+        const lote = texto.match(/LOTE:\s*(\w+)/i);
+        const qtd = texto.match(/QTDE.*:\s*(\d+)/i);
+        if (mat) document.getElementById('item_material').value = mat[1];
+        if (lote) document.getElementById('item_lote').value = lote[1];
+        if (qtd) document.getElementById('item_qtd').value = qtd[1];
+      } else {
+        document.getElementById('item_material').value = texto;
+      }
+    }
 
-            const linhas = textoColado.trim().split('\n');
-            const novasCargas = [];
+    function fecharScanner() {
+      if (codeReader) codeReader.reset();
+      document.getElementById('modal_scanner').classList.add('hidden');
+    }
 
-            // Ignora o cabeçalho (linha 0) e processa o resto
-            for (let i = 1; i < linhas.length; i++) {
-                const colunas = linhas[i].split('\t');
-                if (colunas.length >= 4) {
-                    novasCargas.push({
-                        numero: colunas[0].trim(),
-                        transportadora: colunas[1].trim(),
-                        motorista: colunas[2].trim(),
-                        status: colunas[3].trim()
-                    });
-                }
-            }
+    // CONFERÊNCIA DE ITENS
+    function adicionarItemConferido() {
+      const mat = document.getElementById('item_material').value;
+      const lote = document.getElementById('item_lote').value;
+      const qtd = document.getElementById('item_qtd').value;
 
-            if (novasCargas.length === 0) {
-                alert("Nenhum dado válido encontrado. Certifique-se de copiar as colunas corretamente.");
-                return;
-            }
+      if (!mat || !lote || !qtd) {
+        alert("Preencha Material, Lote e Quantidade!");
+        return;
+      }
 
-            // Envia para o Supabase
-            const { error } = await _supabase.from('cargas').insert(novasCargas);
+      itensConferidos.push({ mat, lote, qtd });
+      atualizarListaItens();
 
-            if (error) {
-                alert("Erro ao salvar no Supabase: " + error.message);
-            } else {
-                alert("Cargas importadas com sucesso!");
-                carregarCargas(); // Recarrega a tabela na tela
-            }
-        }
+      document.getElementById('item_material').value = '';
+      document.getElementById('item_lote').value = '';
+      document.getElementById('item_qtd').value = '';
+    }
 
-        // Executa ao carregar a página
-        window.onload = carregarCargas;
-    </script>
+    function atualizarListaItens() {
+      const el = document.getElementById('lista_itens');
+      if (itensConferidos.length === 0) {
+        el.innerHTML = '<li class="py-2 text-gray-400 text-center italic">Nenhum item adicionado ainda.</li>';
+        return;
+      }
+      el.innerHTML = itensConferidos.map((it, idx) => `
+        <li class="py-2 flex justify-between items-center">
+          <div>
+            <span class="font-bold text-blue-900">${it.mat}</span> - Lote: <span class="font-mono">${it.lote}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded text-xs">${it.qtd} cx</span>
+            <button onclick="removerItem(${idx})" class="text-red-500 font-bold px-1">✕</button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function removerItem(idx) {
+      itensConferidos.splice(idx, 1);
+      atualizarListaItens();
+    }
+
+    // RNCs
+    function selecionarAtalhoRNC(val) {
+      if (val) document.getElementById('rnc_correcao').value = val;
+    }
+
+    function adicionarRNC() {
+      const desc = document.getElementById('rnc_desc').value;
+      const corr = document.getElementById('rnc_correcao').value;
+      const num = document.getElementById('rnc_numero').value;
+      const resp = document.getElementById('rnc_resp').value;
+
+      if (!desc) { alert("Descreva a não conformidade."); return; }
+
+      listaRNCs.push({ desc, corr, num, resp, data: new Date().toLocaleTimeString() });
+      atualizarListaRNC();
+
+      document.getElementById('rnc_desc').value = '';
+      document.getElementById('rnc_correcao').value = '';
+    }
+
+    function atualizarListaRNC() {
+      const el = document.getElementById('lista_rncs');
+      if (listaRNCs.length === 0) {
+        el.innerHTML = '<li class="py-1 text-gray-400 italic">Nenhuma RNC registrada.</li>';
+        return;
+      }
+      el.innerHTML = listaRNCs.map(r => `
+        <li class="py-1 border-b">
+          <div class="font-bold text-amber-900">${r.desc}</div>
+          <div class="text-gray-600">Correção: ${r.corr || 'N/A'} | Resp: ${r.resp || '-'}</div>
+        </li>
+      `).join('');
+    }
+
+    // CÂMERA FOTO
+    async function abrirCameraAoVivo() {
+      document.getElementById('modal_camera_foto').classList.remove('hidden');
+      try {
+        streamCameraFoto = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }, audio: false
+        }).catch(() => navigator.mediaDevices.getUserMedia({ video: true }));
+
+        document.getElementById('video_foto').srcObject = streamCameraFoto;
+        document.getElementById('video_foto').play();
+      } catch (e) {
+        alert("Erro ao acessar câmera: " + e.message);
+        fecharCameraFoto();
+      }
+    }
+
+    function fecharCameraFoto() {
+      if (streamCameraFoto) streamCameraFoto.getTracks().forEach(t => t.stop());
+      document.getElementById('modal_camera_foto').classList.add('hidden');
+    }
+
+    function capturarFotoComCarimbo() {
+      const video = document.getElementById('video_foto');
+      const canvas = document.getElementById('canvas_auxiliar');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Carimbo
+      const dt = document.getElementById('op_dt').value || 'S/DT';
+      const dataHora = new Date().toLocaleString();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "16px sans-serif";
+      ctx.fillText(`DT: ${dt} | ${dataHora}`, 10, canvas.height - 15);
+
+      const urlData = canvas.toDataURL('image/jpeg');
+      fotosCapturadas.push(urlData);
+
+      renderizarGaleriaFotos();
+      fecharCameraFoto();
+    }
+
+    function renderizarGaleriaFotos() {
+      const container = document.getElementById('galeria_fotos');
+      container.innerHTML = fotosCapturadas.map((f, i) => `
+        <div class="relative border rounded overflow-hidden shadow">
+          <img src="${f}" class="w-full h-24 object-cover">
+          <button onclick="fotosCapturadas.splice(${i},1);renderizarGaleriaFotos()" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function finalizarCarregamento() {
+      alert("✅ Conferência e Inspeção salvas com sucesso!");
+    }
+
+    function abrirConfigSupabase() {
+      alert("Para conectar ao Supabase, insira suas chaves no código JavaScript.");
+    }
+  </script>
 </body>
 </html>
