@@ -235,3 +235,494 @@
         <div>
           <label class="block font-semibold mb-1">Descrição da Não Conformidade</label>
           <input type="text" id="rnc_desc" placeholder="Ex: Palete com cantoneira amassada" class="w-full p-2 border rounded">
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">Ação Corretiva / Atalhos Rápidos</label>
+          <select id="rnc_correcao_atalho" onchange="selecionarAtalhoRNC(this.value)" class="w-full p-2 border rounded bg-white text-xs mb-1">
+            <option value="">-- Selecione uma correção predefinida --</option>
+            <option value="Solicitar limpeza com vassoura">Solicitar limpeza com vassoura</option>
+            <option value="Solicitar higienização com água">Solicitar higienização com água</option>
+            <option value="Substituição da caixa ou produto avariado">Substituição da caixa ou produto avariado</option>
+            <option value="Substituição de embalagem ou etiqueta">Substituição de embalagem ou etiqueta</option>
+            <option value="Substituição de paletes quebrados">Substituição de paletes quebrados</option>
+            <option value="Estrechar palete novamente">Estrechar palete novamente</option>
+            <option value="Colocar e/ou substituir cantoneiras">Colocar e/ou substituir cantoneiras</option>
+            <option value="Cobrir palete com película plástica">Cobrir palete com película plástica</option>
+            <option value="Aguardar ajuste da temperatura">Aguardar ajuste da temperatura</option>
+            <option value="Recusar veículo / Abertura de RNC">Recusar veículo / Abertura de RNC</option>
+          </select>
+          <input type="text" id="rnc_correcao" placeholder="Ou digite a correção realizada" class="w-full p-2 border rounded">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold mb-1">Nº RNC (se houver)</label>
+            <input type="text" id="rnc_numero" placeholder="Ex: RNC-001" class="w-full p-2 border rounded">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">Responsável</label>
+            <input type="text" id="rnc_resp" placeholder="Nome" class="w-full p-2 border rounded">
+          </div>
+        </div>
+        <button onclick="adicionarRNC()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded no-print">
+          + Registrar Ocorrência / RNC
+        </button>
+
+        <ul id="lista_rncs" class="divide-y divide-gray-200 text-xs pt-2">
+          <li class="py-1 text-gray-400 italic">Nenhuma RNC registrada.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 5. REGISTRO MULTIFOTOS (PALETES + ETIQUETAS) -->
+    <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
+      <h2 class="font-bold text-blue-900 text-md mb-3 flex items-center gap-2">
+        <span>📸</span> 5. Galeria de Fotos dos Paletes & Etiquetas
+      </h2>
+
+      <div class="space-y-3 no-print">
+        <div>
+          <label class="block font-semibold text-xs mb-1">Selecione o Tipo de Foto:</label>
+          <select id="tipo_foto_categoria" class="w-full p-2 border rounded bg-white font-bold text-xs">
+            <option value="Foto de Palete Inteiro">📦 Foto de Palete Inteiro / Stretch</option>
+            <option value="Foto de Etiqueta">🏷️ Foto de Etiqueta de Lote</option>
+            <option value="Foto de Baú / Lacre">🚛 Foto de Baú / Lacre / Termômetro</option>
+            <option value="Foto de Avaria / RNC">⚠️ Foto de Avaria / Não Conformidade</option>
+          </select>
+        </div>
+
+        <button onclick="abrirCameraAoVivo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow flex items-center justify-center gap-2">
+          📷 Capturar Foto (Câmera AO VIVO)
+        </button>
+      </div>
+
+      <div id="galeria_fotos" class="grid grid-cols-2 gap-2 mt-4"></div>
+    </section>
+
+    <!-- FINALIZAR, COMPARTILHAR & EXPORTAR EXCEL -->
+    <section class="space-y-3 no-print">
+      <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+        📤 Compartilhar Relatório + Fotos
+      </button>
+      <button onclick="exportarParaExcel()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
+        📊 Exportar Dados para Excel (.CSV)
+      </button>
+    </section>
+
+  </main>
+
+  <!-- MODAL DE CÂMERA SCANNER DE ETIQUETA -->
+  <div id="modal_scanner" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="text-white text-center mb-2 font-bold">Aproxime o código de barras ou QR Code da etiqueta</div>
+    <div class="relative w-full max-w-sm h-64 bg-black rounded-lg overflow-hidden border-2 border-green-500">
+      <video id="video_scanner" class="w-full h-full object-cover"></video>
+    </div>
+    <button onclick="fecharScanner()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-full font-bold">
+      Fechar Scanner
+    </button>
+  </div>
+
+  <!-- MODAL DE CÂMERA FOTO AO VIVO -->
+  <div id="modal_camera_foto" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="relative w-full max-w-sm h-96 bg-black rounded-lg overflow-hidden border-2 border-indigo-500">
+      <video id="video_foto" class="w-full h-full object-cover"></video>
+    </div>
+    <div class="flex gap-4 mt-4">
+      <button onclick="capturarFotoComCarimbo()" class="bg-indigo-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+        📸 Tirar Foto
+      </button>
+      <button onclick="fecharCameraFoto()" class="bg-gray-600 text-white px-4 py-3 rounded-full font-bold">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+  <canvas id="canvas_auxiliar" class="watermark-canvas"></canvas>
+
+  <script>
+    let itensConferidos = [];
+    let listaRNCs = [];
+    let fotosCapturadas = [];
+    let codeReader = null;
+    let streamCameraFoto = null;
+
+    const itensVeiculo = [
+      "1 - Parede / Teto / Assoalhos",
+      "2 - Temperatura adequada",
+      "3 - Presença de cheiro estranho",
+      "4 - Câmaras e compressores ok",
+      "5 - Limpeza da carroceria",
+      "6 - Resíduos de lubrificantes/graxas",
+      "7 - Presença/evidência de pragas"
+    ];
+
+    const itensCarregamento = [
+      "8 - Paletes/produtos sem avarias",
+      "9 - Paletes estrechados adequadamente",
+      "10 - Stretch limpo, livre de pragas",
+      "11 - Produtos bem acondicionados",
+      "12 - Colocada trava paletes/isopainel",
+      "13 - Foram feitas fotos da carga lacrada",
+      "14 - Lote conforme especificação",
+      "15 - Laudo entregue ao transportador",
+      "16 - Lotes impressos condizem c/ laudo"
+    ];
+
+    window.onload = () => {
+      renderizarChecklist('checklist_veiculo', itensVeiculo);
+      renderizarChecklist('checklist_carregamento', itensCarregamento);
+
+      // Tenta carregar rascunho salvo anteriormente de forma offline
+      carregarRascunhoOffline(true);
+
+      setTimeout(() => {
+        const splash = document.getElementById('splash_screen');
+        const conteudo = document.getElementById('conteudo_principal');
+        const header = document.querySelector('header');
+
+        if (splash) {
+          splash.style.transition = "opacity 0.8s ease";
+          splash.style.opacity = "0";
+          setTimeout(() => {
+            splash.style.display = "none";
+            if (conteudo) conteudo.style.opacity = "1";
+            if (header) header.style.opacity = "1";
+          }, 800);
+        }
+      }, 3000);
+    };
+
+    function renderizarChecklist(idContainer, itens) {
+      const container = document.getElementById(idContainer);
+      container.innerHTML = itens.map((item, idx) => `
+        <div class="flex items-center justify-between border-b pb-1 text-xs">
+          <span class="pr-2">${item}</span>
+          <div class="flex gap-1">
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="C" checked> C
+            </label>
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="NC"> NC
+            </label>
+            <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
+              <input type="radio" name="${idContainer}_${idx}" value="NA"> NA
+            </label>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Salva todos os dados preenchidos na memória interna do celular (LocalStorage)
+    function salvarRascunhoOffline() {
+      const dados = {
+        op_nome: document.getElementById('op_nome').value,
+        op_dt: document.getElementById('op_dt').value,
+        op_placa: document.getElementById('op_placa').value,
+        op_transportadora: document.getElementById('op_transportadora').value,
+        op_turno: document.getElementById('op_turno').value,
+        parecer_veiculo: document.getElementById('parecer_veiculo').value,
+        temp_inicio: document.getElementById('temp_inicio').value,
+        temp_meio: document.getElementById('temp_meio').value,
+        temp_fim: document.getElementById('temp_fim').value,
+        temp_veiculo: document.getElementById('temp_veiculo').value,
+        itensConferidos,
+        listaRNCs,
+        fotosCapturadas
+      };
+      localStorage.setItem('tirol_conferencia_rascunho', JSON.stringify(dados));
+      alert("✅ Rascunho salvo offline com sucesso no dispositivo!");
+    }
+
+    // Restaura os dados salvos anteriormente quando o app abrir ou ao clicar no botão
+    function carregarRascunhoOffline(silencioso = false) {
+      const salvo = localStorage.getItem('tirol_conferencia_rascunho');
+      if (!salvo) {
+        if (!silencioso) alert("Nenhum rascunho encontrado.");
+        return;
+      }
+      try {
+        const dados = JSON.parse(salvo);
+        document.getElementById('op_nome').value = dados.op_nome || '';
+        document.getElementById('op_dt').value = dados.op_dt || '';
+        document.getElementById('op_placa').value = dados.op_placa || '';
+        document.getElementById('op_transportadora').value = dados.op_transportadora || '';
+        document.getElementById('op_turno').value = dados.op_turno || '1º Turno';
+        document.getElementById('parecer_veiculo').value = dados.parecer_veiculo || 'Aprovado';
+        document.getElementById('temp_inicio').value = dados.temp_inicio || '';
+        document.getElementById('temp_meio').value = dados.temp_meio || '';
+        document.getElementById('temp_fim').value = dados.temp_fim || '';
+        document.getElementById('temp_veiculo').value = dados.temp_veiculo || '';
+
+        itensConferidos = dados.itensConferidos || [];
+        listaRNCs = dados.listaRNCs || [];
+        fotosCapturadas = dados.fotosCapturadas || [];
+
+        atualizarListaItens();
+        atualizarListaRNC();
+        renderizarGaleriaFotos();
+
+        if (!silencioso) alert("📂 Dados carregados com sucesso do armazenamento offline!");
+      } catch (e) {
+        console.error("Erro ao carregar rascunho", e);
+      }
+    }
+
+    async function iniciarScannerEtiqueta() {
+      document.getElementById('modal_scanner').classList.remove('hidden');
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      try {
+        await codeReader.decodeFromVideoDevice(null, 'video_scanner', (result, err) => {
+          if (result) {
+            tratarLeituraEtiquetaCompleta(result.text);
+            fecharScanner();
+          }
+        });
+      } catch (e) {
+        alert("Erro ao abrir câmera para leitura: " + e.message);
+        fecharScanner();
+      }
+    }
+
+    function tratarLeituraEtiquetaCompleta(texto) {
+      const mat = texto.match(/Material:\s*(\d+)/i);
+      const lote = texto.match(/LOTE:\s*(\w+)/i);
+      const fab = texto.match(/FABRICACAO:\s*([\d\.]+)/i);
+      const venc = texto.match(/VENCIMENTO:\s*([\d\.]+)/i);
+      const un = texto.match(/QTDE UN PALLET:\s*([\d\.,]+)/i);
+      const cx = texto.match(/QTDE CX PALLET:\s*([\d\.,]+)/i);
+      const ud = texto.match(/UD:\s*(\d+)/i);
+      const pos = texto.match(/(P\d+\s*C\d+)/i);
+
+      if (mat) document.getElementById('item_material').value = mat[1];
+      if (lote) document.getElementById('item_lote').value = lote[1];
+      if (fab) document.getElementById('item_fabricacao').value = fab[1];
+      if (venc) document.getElementById('item_vencimento').value = venc[1];
+      if (un) document.getElementById('item_qtd_un').value = un[1];
+      if (cx) document.getElementById('item_qtd_cx').value = cx[1];
+      if (ud) document.getElementById('item_ud').value = ud[1];
+      if (pos) document.getElementById('item_posicao').value = pos[1];
+
+      if (!mat && !lote) {
+        document.getElementById('item_material').value = texto;
+      }
+    }
+
+    function fecharScanner() {
+      if (codeReader) codeReader.reset();
+      document.getElementById('modal_scanner').classList.add('hidden');
+    }
+
+    function adicionarItemConferido() {
+      const mat = document.getElementById('item_material').value;
+      const desc = document.getElementById('item_descricao').value;
+      const lote = document.getElementById('item_lote').value;
+      const fab = document.getElementById('item_fabricacao').value;
+      const venc = document.getElementById('item_vencimento').value;
+      const qtdCx = document.getElementById('item_qtd_cx').value;
+      const qtdUn = document.getElementById('item_qtd_un').value;
+      const ud = document.getElementById('item_ud').value;
+      const pos = document.getElementById('item_posicao').value;
+
+      if (!mat || !lote || !qtdCx) {
+        alert("Preencha ao menos Material, Lote e Quantidade de Caixas!");
+        return;
+      }
+
+      itensConferidos.push({ mat, desc, lote, fab, venc, qtdCx, qtdUn, ud, pos });
+      atualizarListaItens();
+      salvarRascunhoOffline(); // Salva automaticamente ao adicionar item
+
+      ['item_material','item_descricao','item_lote','item_fabricacao','item_vencimento','item_qtd_cx','item_qtd_un','item_ud','item_posicao'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
+
+    function atualizarListaItens() {
+      const el = document.getElementById('lista_itens');
+      if (itensConferidos.length === 0) {
+        el.innerHTML = '<li class="py-2 text-gray-400 text-center italic">Nenhum item adicionado ainda.</li>';
+        return;
+      }
+      el.innerHTML = itensConferidos.map((it, idx) => `
+        <li class="py-2 border-b flex justify-between items-start">
+          <div>
+            <div class="font-bold text-blue-900">${it.mat} - ${it.desc || 'Sem Descrição'}</div>
+            <div class="text-gray-600">Lote: <span class="font-bold">${it.lote}</span> | Val: ${it.venc || '-'} | Pos: ${it.pos || '-'}</div>
+            <div class="text-gray-500 text-[10px]">UD: ${it.ud || '-'} | Qtd: ${it.qtdCx} cx (${it.qtdUn || '0'} un)</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">${it.qtdCx} cx</span>
+            <button onclick="removerItem(${idx})" class="text-red-500 font-bold px-1 no-print">✕</button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function removerItem(idx) {
+      itensConferidos.splice(idx, 1);
+      atualizarListaItens();
+      salvarRascunhoOffline();
+    }
+
+    function selecionarAtalhoRNC(val) {
+      if (val) document.getElementById('rnc_correcao').value = val;
+    }
+
+    function adicionarRNC() {
+      const desc = document.getElementById('rnc_desc').value;
+      const corr = document.getElementById('rnc_correcao').value;
+      const num = document.getElementById('rnc_numero').value;
+      const resp = document.getElementById('rnc_resp').value;
+
+      if (!desc) { alert("Descreva a não conformidade."); return; }
+
+      listaRNCs.push({ desc, corr, num, resp, data: new Date().toLocaleTimeString() });
+      atualizarListaRNC();
+      salvarRascunhoOffline();
+
+      document.getElementById('rnc_desc').value = '';
+      document.getElementById('rnc_correcao').value = '';
+    }
+
+    function atualizarListaRNC() {
+      const el = document.getElementById('lista_rncs');
+      if (listaRNCs.length === 0) {
+        el.innerHTML = '<li class="py-1 text-gray-400 italic">Nenhuma RNC registrada.</li>';
+        return;
+      }
+      el.innerHTML = listaRNCs.map(r => `
+        <li class="py-1 border-b">
+          <div class="font-bold text-amber-900">${r.desc}</div>
+          <div class="text-gray-600">Correção: ${r.corr || 'N/A'} | Resp: ${r.resp || '-'}</div>
+        </li>
+      `).join('');
+    }
+
+    async function abrirCameraAoVivo() {
+      document.getElementById('modal_camera_foto').classList.remove('hidden');
+      try {
+        streamCameraFoto = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }, audio: false
+        }).catch(() => navigator.mediaDevices.getUserMedia({ video: true }));
+
+        document.getElementById('video_foto').srcObject = streamCameraFoto;
+        document.getElementById('video_foto').play();
+      } catch (e) {
+        alert("Erro ao acessar câmera: " + e.message);
+        fecharCameraFoto();
+      }
+    }
+
+    function fecharCameraFoto() {
+      if (streamCameraFoto) streamCameraFoto.getTracks().forEach(t => t.stop());
+      document.getElementById('modal_camera_foto').classList.add('hidden');
+    }
+
+    function capturarFotoComCarimbo() {
+      const video = document.getElementById('video_foto');
+      const canvas = document.getElementById('canvas_auxiliar');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const categoria = document.getElementById('tipo_foto_categoria').value;
+      const dt = document.getElementById('op_dt').value || 'S/DT';
+      const dataHora = new Date().toLocaleString();
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(0, canvas.height - 45, canvas.width, 45);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "14px sans-serif";
+      ctx.fillText(`${categoria.toUpperCase()} | DT: ${dt}`, 10, canvas.height - 25);
+      ctx.fillText(`Data/Hora: ${dataHora}`, 10, canvas.height - 8);
+
+      canvas.toBlob((blob) => {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+          const base64data = reader.result;
+          fotosCapturadas.push({ url: base64data, cat: categoria, data: dataHora });
+          renderizarGaleriaFotos();
+          salvarRascunhoOffline();
+          fecharCameraFoto();
+        };
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', 0.9);
+    }
+
+    function renderizarGaleriaFotos() {
+      const container = document.getElementById('galeria_fotos');
+      container.innerHTML = fotosCapturadas.map((f, i) => `
+        <div class="relative border rounded overflow-hidden shadow bg-gray-50">
+          <img src="${f.url}" class="w-full h-28 object-cover">
+          <div class="p-1 text-[10px] bg-gray-800 text-white font-bold truncate">${f.cat}</div>
+          <button onclick="fotosCapturadas.splice(${i},1);renderizarGaleriaFotos();salvarRascunhoOffline();" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold no-print">✕</button>
+        </div>
+      `).join('');
+    }
+
+    async function gerarECompartilharRelatorioComFotos() {
+      const dt = document.getElementById('op_dt').value || 'SemDT';
+      const placa = document.getElementById('op_placa').value || 'SemPlaca';
+      const textoResumo = `📋 *RELATÓRIO DE CONFERÊNCIA DE CARGA*\n\n` +
+        `🚛 *DT:* ${dt}\n` +
+        `🚚 *Placa:* ${placa}\n` +
+        `👤 *Operador:* ${document.getElementById('op_nome').value || '-'}\n` +
+        `🏢 *Transportadora:* ${document.getElementById('op_transportadora').value || '-'}\n` +
+        `📦 *Itens Conferidos:* ${itensConferidos.length} paletes/lotes\n` +
+        `⚠️ *Ocorrências/RNC:* ${listaRNCs.length}\n` +
+        `📸 *Fotos Anexadas:* ${fotosCapturadas.length}\n` +
+        `✅ *Parecer:* ${document.getElementById('parecer_veiculo').value}`;
+
+      if (navigator.canShare) {
+        try {
+          const dadosShare = {
+            title: `Relatório de Expedição DT ${dt}`,
+            text: textoResumo,
+          };
+          await navigator.share(dadosShare);
+          return;
+        } catch (e) {
+          console.log("Compartilhamento cancelado ou não suportado", e);
+        }
+      }
+      window.print();
+    }
+
+    function exportarParaExcel() {
+      const dt = document.getElementById('op_dt').value || 'SemDT';
+      let csvContent = "\uFEFF";
+
+      csvContent += "DADOS DA CARGA\n";
+      csvContent += `Documento de Transporte (DT);${dt}\n`;
+      csvContent += `Placa do Veículo;${document.getElementById('op_placa').value || ''}\n`;
+      csvContent += `Operador;${document.getElementById('op_nome').value || ''}\n`;
+      csvContent += `Transportadora;${document.getElementById('op_transportadora').value || ''}\n`;
+      csvContent += `Turno;${document.getElementById('op_turno').value || ''}\n`;
+      csvContent += `Parecer Veículo;${document.getElementById('parecer_veiculo').value || ''}\n\n`;
+
+      csvContent += "ITENS CONFERIDOS\n";
+      csvContent += "Material;Descrição;Lote;Fabricação;Vencimento;Qtde Cx;Qtde Un;UD;Posição\n";
+      itensConferidos.forEach(it => {
+        csvContent += `"${it.mat}";"${it.desc || ''}";"${it.lote}";"${it.fab || ''}";"${it.venc || ''}";"${it.qtdCx}";"${it.qtdUn || ''}";"${it.ud || ''}";"${it.pos || ''}"\n`;
+      });
+      csvContent += "\n";
+
+      csvContent += "NÃO CONFORMIDADES (RNC)\n";
+      csvContent += "Descrição;Ação Corretiva;Nº RNC;Responsável;Horário\n";
+      listaRNCs.forEach(r => {
+        csvContent += `"${r.desc}";"${r.corr || ''}";"${r.num || ''}";"${r.resp || ''}";"${r.data}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Conferencia_Carga_DT_${dt}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
