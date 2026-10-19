@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Biblioteca para exportar arquivos Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     .watermark-canvas { display: none; }
     #interactive video { width: 100%; height: 100%; object-fit: cover; }
@@ -325,6 +327,11 @@
       <button id="btn_enviar_principal" onclick="enviarParaSupabase()" disabled class="w-full bg-gray-500 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2 cursor-not-allowed transition-all">
         ⚡ Transmitir para a Sala em Tempo Real
       </button>
+      
+      <button onclick="exportarParaExcel()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
+        📊 Exportar Relatório para Excel (.xlsx)
+      </button>
+
       <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
         📤 Compartilhar Relatório + Fotos no WhatsApp
       </button>
@@ -792,6 +799,77 @@
           <button onclick="fotosCapturadas.splice(${i},1);renderizarGaleriaFotos();salvarRascunhoOffline();" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold no-print">✕</button>
         </div>
       `).join('');
+    }
+
+    /* EXPORTAR DADOS PARA PLANILHA EXCEL (.XLSX) */
+    function exportarParaExcel() {
+      const dt = document.getElementById('op_dt').value || 'SemDT';
+      const placa = document.getElementById('op_placa').value || 'SemPlaca';
+      const operador = document.getElementById('op_nome').value || 'Não informado';
+      const transportadora = document.getElementById('op_transportadora').value || 'Não informada';
+      const turno = document.getElementById('op_turno').value;
+      const parecer = document.getElementById('parecer_veiculo').value;
+
+      const wb = XLSX.utils.book_new();
+
+      // Aba 1: Dados Gerais
+      const dadosGerais = [
+        ["CAMPO", "VALOR"],
+        ["Documento de Transporte (DT)", dt],
+        ["Placa do Veículo", placa],
+        ["Operador / Conferente", operador],
+        ["Transportadora", transportadora],
+        ["Turno", turno],
+        ["Parecer do Veículo", parecer],
+        ["Temp. Produto (Início)", document.getElementById('temp_inicio').value || '-'],
+        ["Temp. Produto (Meio)", document.getElementById('temp_meio').value || '-'],
+        ["Temp. Produto (Fim)", document.getElementById('temp_fim').value || '-'],
+        ["Temp. Veículo", document.getElementById('temp_veiculo').value || '-'],
+        ["Data da Exportação", new Date().toLocaleString()]
+      ];
+      const wsGerais = XLSX.utils.aoa_to_sheet(dadosGerais);
+      XLSX.utils.book_append_sheet(wb, wsGerais, "Geral");
+
+      // Aba 2: Itens Conferidos
+      const dadosItens = [
+        ["Material", "Descrição", "Lote", "Fabricação", "Vencimento", "Qtd Caixa", "Qtd Unidade", "UD", "Posição"]
+      ];
+
+      itensConferidos.forEach(it => {
+        dadosItens.push([
+          it.mat,
+          it.desc,
+          it.lote,
+          it.fab,
+          it.venc,
+          it.qtdCx,
+          it.qtdUn,
+          it.ud,
+          it.pos
+        ]);
+      });
+      const wsItens = XLSX.utils.aoa_to_sheet(dadosItens);
+      XLSX.utils.book_append_sheet(wb, wsItens, "Itens Conferidos");
+
+      // Aba 3: Registro de Não Conformidades (RNC)
+      const dadosRnc = [
+        ["Descrição da Não Conformidade", "Ação Corretiva", "Nº RNC", "Responsável", "Horário"]
+      ];
+
+      listaRNCs.forEach(r => {
+        dadosRnc.push([
+          r.desc,
+          r.corr,
+          r.num,
+          r.resp,
+          r.data
+        ]);
+      });
+      const wsRnc = XLSX.utils.aoa_to_sheet(dadosRnc);
+      XLSX.utils.book_append_sheet(wb, wsRnc, "Ocorrências RNC");
+
+      // Baixa o arquivo .xlsx no celular ou computador
+      XLSX.writeFile(wb, `Conferencia_Carga_DT_${dt}_${placa}.xlsx`);
     }
 
     function dataURLtoFile(dataurl, filename) {
