@@ -55,7 +55,7 @@
         <span>🥛</span> Conferência Carga
       </h1>
       <div class="flex gap-2">
-        <button onclick="enviarParaSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-xs px-2.5 py-1 rounded font-bold flex items-center gap-1 shadow">
+        <button id="btn_enviar_header" onclick="enviarParaSupabase()" disabled class="bg-gray-500 text-xs px-2.5 py-1 rounded font-bold flex items-center gap-1 shadow cursor-not-allowed transition-all">
           ⚡ Enviar p/ Sala
         </button>
         <button onclick="salvarRascunhoOffline()" class="bg-amber-600 hover:bg-amber-500 text-xs px-2 py-1 rounded font-bold">
@@ -322,7 +322,7 @@
 
     <!-- FINALIZAR, COMPARTILHAR & EXPORTAR EXCEL -->
     <section class="space-y-3 no-print">
-      <button onclick="enviarParaSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+      <button id="btn_enviar_principal" onclick="enviarParaSupabase()" disabled class="w-full bg-gray-500 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2 cursor-not-allowed transition-all">
         ⚡ Transmitir para a Sala em Tempo Real
       </button>
       <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
@@ -413,6 +413,25 @@
       }, 3000);
     };
 
+    function atualizarEstadoBotoesEnvio(conectado) {
+      const btnHeader = document.getElementById('btn_enviar_header');
+      const btnPrincipal = document.getElementById('btn_enviar_principal');
+
+      if (conectado) {
+        btnHeader.disabled = false;
+        btnHeader.className = "bg-emerald-600 hover:bg-emerald-500 text-xs px-2.5 py-1 rounded font-bold flex items-center gap-1 shadow cursor-pointer transition-all";
+        
+        btnPrincipal.disabled = false;
+        btnPrincipal.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2 cursor-pointer transition-all";
+      } else {
+        btnHeader.disabled = true;
+        btnHeader.className = "bg-gray-500 text-xs px-2.5 py-1 rounded font-bold flex items-center gap-1 shadow cursor-not-allowed transition-all";
+        
+        btnPrincipal.disabled = true;
+        btnPrincipal.className = "w-full bg-gray-500 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2 cursor-not-allowed transition-all";
+      }
+    }
+
     function inicializarSupabase() {
       const url = localStorage.getItem('sp_url') || 'https://thufowemcubupzfdrqjq.supabase.co';
       const key = localStorage.getItem('sp_key');
@@ -425,9 +444,12 @@
         document.getElementById('status_conexao').innerHTML = '🟢 Conectado';
         document.getElementById('status_conexao').className = 'text-green-400 font-bold';
         
-        // Fecha o painel de configurações para ocultar visualmente
+        atualizarEstadoBotoesEnvio(true);
+
         const details = document.getElementById('painel_conexao_details');
         if (details) details.removeAttribute('open');
+      } else {
+        atualizarEstadoBotoesEnvio(false);
       }
     }
 
@@ -440,6 +462,26 @@
       localStorage.setItem('sp_key', key);
       inicializarSupabase();
       alert("Conectado e credenciais protegidas!");
+    }
+
+    function resetarFormularioCompleto() {
+      ['op_nome','op_dt','op_placa','op_transportadora','temp_inicio','temp_meio','temp_fim','temp_veiculo','rnc_desc','rnc_correcao','rnc_numero','rnc_resp','item_material','item_descricao','item_lote','item_fabricacao','item_vencimento','item_qtd_cx','item_qtd_un','item_ud','item_posicao'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      document.getElementById('op_turno').value = '1º Turno';
+      document.getElementById('parecer_veiculo').value = 'Aprovado';
+
+      itensConferidos = [];
+      listaRNCs = [];
+      fotosCapturadas = [];
+
+      atualizarListaItens();
+      atualizarListaRNC();
+      renderizarGaleriaFotos();
+
+      localStorage.removeItem('tirol_conferencia_rascunho');
     }
 
     async function enviarParaSupabase() {
@@ -472,6 +514,7 @@
         const { error } = await supabaseClient.from('cargas_conferencia').insert([payload]);
         if (error) throw error;
         alert("🚀 Dados e Fotos transmitidos com sucesso para a sala em tempo real!");
+        resetarFormularioCompleto();
       } catch (err) {
         alert("Erro ao enviar dados: " + err.message);
       }
@@ -583,7 +626,9 @@
     }
 
     function fecharScanner() {
-      if (codeReader) codeReader.reset();
+      try {
+        if (codeReader) codeReader.reset();
+      } catch(e) {}
       document.getElementById('modal_scanner').classList.add('hidden');
     }
 
@@ -689,18 +734,30 @@
     }
 
     function fecharCameraFoto() {
-      if (streamCameraFoto) streamCameraFoto.getTracks().forEach(t => t.stop());
+      try {
+        if (streamCameraFoto) streamCameraFoto.getTracks().forEach(t => t.stop());
+      } catch(e) {}
       document.getElementById('modal_camera_foto').classList.add('hidden');
     }
 
     function capturarFotoComCarimbo() {
       const video = document.getElementById('video_foto');
       const canvas = document.getElementById('canvas_auxiliar');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      
+      const MAX_LARGURA = 800;
+      let largura = video.videoWidth || 640;
+      let altura = video.videoHeight || 480;
+
+      if (largura > MAX_LARGURA) {
+        altura = Math.round((altura * MAX_LARGURA) / largura);
+        largura = MAX_LARGURA;
+      }
+
+      canvas.width = largura;
+      canvas.height = altura;
 
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, largura, altura);
 
       const categoria = document.getElementById('tipo_foto_categoria').value;
       const dt = document.getElementById('op_dt').value || 'S/DT';
@@ -723,7 +780,7 @@
           fecharCameraFoto();
         };
         reader.readAsDataURL(blob);
-      }, 'image/jpeg', 0.8);
+      }, 'image/jpeg', 0.6);
     }
 
     function renderizarGaleriaFotos() {
