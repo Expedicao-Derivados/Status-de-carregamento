@@ -6,6 +6,7 @@
   <title>Conferência Carga - Expedição & Inspeção Lácteos</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     .watermark-canvas { display: none; }
     #interactive video { width: 100%; height: 100%; object-fit: cover; }
@@ -54,17 +55,38 @@
         <span>🥛</span> Conferência Carga
       </h1>
       <div class="flex gap-2">
-        <button onclick="salvarRascunhoOffline()" class="bg-amber-600 hover:bg-amber-500 text-xs px-2 py-1 rounded font-bold">
-          💾 Salvar Rascunho
+        <button onclick="enviarParaSupabase()" class="bg-emerald-600 hover:bg-emerald-500 text-xs px-2.5 py-1 rounded font-bold flex items-center gap-1 shadow">
+          ⚡ Enviar p/ Sala
         </button>
-        <button onclick="carregarRascunhoOffline()" class="bg-blue-800 hover:bg-blue-700 text-xs px-2 py-1 rounded border border-blue-600">
-          📂 Carregar
+        <button onclick="salvarRascunhoOffline()" class="bg-amber-600 hover:bg-amber-500 text-xs px-2 py-1 rounded font-bold">
+          💾 Salvar
         </button>
       </div>
     </div>
   </header>
 
   <main class="max-w-md mx-auto p-4 space-y-6" id="conteudo_principal">
+
+    <!-- Configuração Rápida do Supabase -->
+    <section class="bg-gray-800 text-white p-3 rounded-xl shadow text-xs no-print">
+      <details>
+        <summary class="font-bold cursor-pointer flex justify-between">
+          <span>⚙️ Conexão em Tempo Real (Supabase)</span>
+          <span id="status_conexao" class="text-yellow-400">● Não Conectado</span>
+        </summary>
+        <div class="mt-2 space-y-2 pt-2 border-t border-gray-700">
+          <div>
+            <label class="block mb-1">URL do Supabase:</label>
+            <input type="text" id="supabase_url" placeholder="https://xyz.supabase.co" class="w-full p-1 bg-gray-900 border border-gray-700 rounded text-white">
+          </div>
+          <div>
+            <label class="block mb-1">Chave Anon Public:</label>
+            <input type="password" id="supabase_key" placeholder="eyJhbG..." class="w-full p-1 bg-gray-900 border border-gray-700 rounded text-white">
+          </div>
+          <button onclick="salvarConfigSupabase()" class="w-full bg-blue-600 font-bold py-1 rounded">Conectar</button>
+        </div>
+      </details>
+    </section>
 
     <!-- 1. IDENTIFICAÇÃO DA CARGA -->
     <section class="bg-white p-4 rounded-xl shadow border border-gray-200">
@@ -300,11 +322,11 @@
 
     <!-- FINALIZAR, COMPARTILHAR & EXPORTAR EXCEL -->
     <section class="space-y-3 no-print">
-      <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
-        📤 Compartilhar Relatório + Fotos
+      <button onclick="enviarParaSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center gap-2">
+        ⚡ Transmitir para a Sala em Tempo Real
       </button>
-      <button onclick="exportarParaExcel()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
-        📊 Exportar Dados para Excel (.CSV)
+      <button onclick="gerarECompartilharRelatorioComFotos()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow text-md flex items-center justify-center gap-2">
+        📤 Compartilhar Relatório + Fotos no WhatsApp
       </button>
     </section>
 
@@ -344,6 +366,7 @@
     let fotosCapturadas = [];
     let codeReader = null;
     let streamCameraFoto = null;
+    let supabaseClient = null;
 
     const itensVeiculo = [
       "1 - Parede / Teto / Assoalhos",
@@ -370,9 +393,8 @@
     window.onload = () => {
       renderizarChecklist('checklist_veiculo', itensVeiculo);
       renderizarChecklist('checklist_carregamento', itensCarregamento);
-
-      // Tenta carregar rascunho salvo anteriormente de forma offline
       carregarRascunhoOffline(true);
+      inicializarSupabase();
 
       setTimeout(() => {
         const splash = document.getElementById('splash_screen');
@@ -390,6 +412,63 @@
         }
       }, 3000);
     };
+
+    function inicializarSupabase() {
+      const url = localStorage.getItem('sp_url');
+      const key = localStorage.getItem('sp_key');
+      if (url && key) {
+        document.getElementById('supabase_url').value = url;
+        document.getElementById('supabase_key').value = key;
+        supabaseClient = supabase.createClient(url, key);
+        document.getElementById('status_conexao').innerHTML = '🟢 Conectado';
+        document.getElementById('status_conexao').className = 'text-green-400 font-bold';
+      }
+    }
+
+    function salvarConfigSupabase() {
+      const url = document.getElementById('supabase_url').value;
+      const key = document.getElementById('supabase_key').value;
+      if (!url || !key) { alert("Preencha URL e Chave!"); return; }
+      localStorage.setItem('sp_url', url);
+      localStorage.setItem('sp_key', key);
+      inicializarSupabase();
+      alert("Conectado ao Supabase com sucesso!");
+    }
+
+    async function enviarParaSupabase() {
+      if (!supabaseClient) {
+        alert("Configure o Supabase primeiro no painel superior!");
+        return;
+      }
+      const dt = document.getElementById('op_dt').value || 'SemDT';
+      const placa = document.getElementById('op_placa').value || 'SemPlaca';
+
+      const payload = {
+        dt: dt,
+        placa: placa,
+        operador: document.getElementById('op_nome').value || '',
+        transportadora: document.getElementById('op_transportadora').value || '',
+        turno: document.getElementById('op_turno').value || '',
+        parecer: document.getElementById('parecer_veiculo').value || '',
+        dados_json: {
+          temp_inicio: document.getElementById('temp_inicio').value,
+          temp_meio: document.getElementById('temp_meio').value,
+          temp_fim: document.getElementById('temp_fim').value,
+          temp_veiculo: document.getElementById('temp_veiculo').value,
+          itensConferidos,
+          listaRNCs,
+          fotosCapturadas
+        }
+      };
+
+      try {
+        const { error } = await supabaseClient.from('cargas_conferencia').insert([payload]);
+        if (error) throw error;
+        alert("🚀 Dados e Fotos transmitidos com sucesso para a sala em tempo real!");
+      } catch (err) {
+        alert("Erro ao enviar dados: " + err.message);
+      }
+    }
 
     function renderizarChecklist(idContainer, itens) {
       const container = document.getElementById(idContainer);
@@ -411,7 +490,6 @@
       `).join('');
     }
 
-    // Salva todos os dados preenchidos na memória interna do celular (LocalStorage)
     function salvarRascunhoOffline() {
       const dados = {
         op_nome: document.getElementById('op_nome').value,
@@ -429,16 +507,11 @@
         fotosCapturadas
       };
       localStorage.setItem('tirol_conferencia_rascunho', JSON.stringify(dados));
-      alert("✅ Rascunho salvo offline com sucesso no dispositivo!");
     }
 
-    // Restaura os dados salvos anteriormente quando o app abrir ou ao clicar no botão
     function carregarRascunhoOffline(silencioso = false) {
       const salvo = localStorage.getItem('tirol_conferencia_rascunho');
-      if (!salvo) {
-        if (!silencioso) alert("Nenhum rascunho encontrado.");
-        return;
-      }
+      if (!salvo) return;
       try {
         const dados = JSON.parse(salvo);
         document.getElementById('op_nome').value = dados.op_nome || '';
@@ -459,11 +532,7 @@
         atualizarListaItens();
         atualizarListaRNC();
         renderizarGaleriaFotos();
-
-        if (!silencioso) alert("📂 Dados carregados com sucesso do armazenamento offline!");
-      } catch (e) {
-        console.error("Erro ao carregar rascunho", e);
-      }
+      } catch (e) {}
     }
 
     async function iniciarScannerEtiqueta() {
@@ -477,7 +546,7 @@
           }
         });
       } catch (e) {
-        alert("Erro ao abrir câmera para leitura: " + e.message);
+        alert("Erro no scanner: " + e.message);
         fecharScanner();
       }
     }
@@ -523,13 +592,13 @@
       const pos = document.getElementById('item_posicao').value;
 
       if (!mat || !lote || !qtdCx) {
-        alert("Preencha ao menos Material, Lote e Quantidade de Caixas!");
+        alert("Preencha ao menos Material, Lote e Qtd de Caixas!");
         return;
       }
 
       itensConferidos.push({ mat, desc, lote, fab, venc, qtdCx, qtdUn, ud, pos });
       atualizarListaItens();
-      salvarRascunhoOffline(); // Salva automaticamente ao adicionar item
+      salvarRascunhoOffline();
 
       ['item_material','item_descricao','item_lote','item_fabricacao','item_vencimento','item_qtd_cx','item_qtd_un','item_ud','item_posicao'].forEach(id => {
         document.getElementById(id).value = '';
@@ -647,7 +716,7 @@
           fecharCameraFoto();
         };
         reader.readAsDataURL(blob);
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.8);
     }
 
     function renderizarGaleriaFotos() {
@@ -661,9 +730,20 @@
       `).join('');
     }
 
+    // Auxiliar: Converte Data URL Base64 para objeto File para envio nativo
+    function dataURLtoFile(dataurl, filename) {
+      let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+          bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+      while(n--){
+          u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, {type:mime});
+    }
+
     async function gerarECompartilharRelatorioComFotos() {
       const dt = document.getElementById('op_dt').value || 'SemDT';
       const placa = document.getElementById('op_placa').value || 'SemPlaca';
+      
       const textoResumo = `📋 *RELATÓRIO DE CONFERÊNCIA DE CARGA*\n\n` +
         `🚛 *DT:* ${dt}\n` +
         `🚚 *Placa:* ${placa}\n` +
@@ -674,54 +754,32 @@
         `📸 *Fotos Anexadas:* ${fotosCapturadas.length}\n` +
         `✅ *Parecer:* ${document.getElementById('parecer_veiculo').value}`;
 
+      // Prepara os arquivos reais das fotos para anexar no compartilhamento
+      const arquivosFotos = fotosCapturadas.map((f, index) => {
+        return dataURLtoFile(f.url, `foto_carga_${dt}_${index + 1}.jpg`);
+      });
+
       if (navigator.canShare) {
         try {
-          const dadosShare = {
-            title: `Relatório de Expedição DT ${dt}`,
-            text: textoResumo,
+          const shareData = {
+            title: `Relatório Carga DT ${dt}`,
+            text: textoResumo
           };
-          await navigator.share(dadosShare);
+
+          // Se houver fotos e o sistema suportar compartilhamento de arquivos
+          if (arquivosFotos.length > 0 && navigator.canShare({ files: arquivosFotos })) {
+            shareData.files = arquivosFotos;
+          }
+
+          await navigator.share(shareData);
           return;
         } catch (e) {
           console.log("Compartilhamento cancelado ou não suportado", e);
         }
       }
+
+      // Alternativa caso o navegador não suporte compartilhamento direto de arquivos
       window.print();
-    }
-
-    function exportarParaExcel() {
-      const dt = document.getElementById('op_dt').value || 'SemDT';
-      let csvContent = "\uFEFF";
-
-      csvContent += "DADOS DA CARGA\n";
-      csvContent += `Documento de Transporte (DT);${dt}\n`;
-      csvContent += `Placa do Veículo;${document.getElementById('op_placa').value || ''}\n`;
-      csvContent += `Operador;${document.getElementById('op_nome').value || ''}\n`;
-      csvContent += `Transportadora;${document.getElementById('op_transportadora').value || ''}\n`;
-      csvContent += `Turno;${document.getElementById('op_turno').value || ''}\n`;
-      csvContent += `Parecer Veículo;${document.getElementById('parecer_veiculo').value || ''}\n\n`;
-
-      csvContent += "ITENS CONFERIDOS\n";
-      csvContent += "Material;Descrição;Lote;Fabricação;Vencimento;Qtde Cx;Qtde Un;UD;Posição\n";
-      itensConferidos.forEach(it => {
-        csvContent += `"${it.mat}";"${it.desc || ''}";"${it.lote}";"${it.fab || ''}";"${it.venc || ''}";"${it.qtdCx}";"${it.qtdUn || ''}";"${it.ud || ''}";"${it.pos || ''}"\n`;
-      });
-      csvContent += "\n";
-
-      csvContent += "NÃO CONFORMIDADES (RNC)\n";
-      csvContent += "Descrição;Ação Corretiva;Nº RNC;Responsável;Horário\n";
-      listaRNCs.forEach(r => {
-        csvContent += `"${r.desc}";"${r.corr || ''}";"${r.num || ''}";"${r.resp || ''}";"${r.data}"\n`;
-      });
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Conferencia_Carga_DT_${dt}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   </script>
 </body>
