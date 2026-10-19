@@ -67,23 +67,23 @@
 
   <main class="max-w-md mx-auto p-4 space-y-6" id="conteudo_principal">
 
-    <!-- Configuração Rápida do Supabase -->
+    <!-- Configuração Rápida do Supabase com Proteção Visual de Chave -->
     <section class="bg-gray-800 text-white p-3 rounded-xl shadow text-xs no-print">
-      <details>
-        <summary class="font-bold cursor-pointer flex justify-between">
+      <details id="painel_conexao_details">
+        <summary class="font-bold cursor-pointer flex justify-between items-center">
           <span>⚙️ Conexão em Tempo Real (Supabase)</span>
           <span id="status_conexao" class="text-yellow-400">● Não Conectado</span>
         </summary>
         <div class="mt-2 space-y-2 pt-2 border-t border-gray-700">
           <div>
             <label class="block mb-1">URL do Supabase:</label>
-            <input type="text" id="supabase_url" placeholder="https://xyz.supabase.co" class="w-full p-1 bg-gray-900 border border-gray-700 rounded text-white">
+            <input type="password" id="supabase_url" value="https://thufowemcubupzfdrqjq.supabase.co" placeholder="https://xyz.supabase.co" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white font-mono">
           </div>
           <div>
             <label class="block mb-1">Chave Anon Public:</label>
-            <input type="password" id="supabase_key" placeholder="eyJhbG..." class="w-full p-1 bg-gray-900 border border-gray-700 rounded text-white">
+            <input type="password" id="supabase_key" placeholder="Cole a chave eyJhbG... aqui" class="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white font-mono">
           </div>
-          <button onclick="salvarConfigSupabase()" class="w-full bg-blue-600 font-bold py-1 rounded">Conectar</button>
+          <button onclick="salvarConfigSupabase()" class="w-full bg-blue-600 font-bold py-2 rounded shadow">Conectar & Proteger Chaves</button>
         </div>
       </details>
     </section>
@@ -414,30 +414,37 @@
     };
 
     function inicializarSupabase() {
-      const url = localStorage.getItem('sp_url');
+      const url = localStorage.getItem('sp_url') || 'https://thufowemcubupzfdrqjq.supabase.co';
       const key = localStorage.getItem('sp_key');
+      
+      document.getElementById('supabase_url').value = url;
+
       if (url && key) {
-        document.getElementById('supabase_url').value = url;
         document.getElementById('supabase_key').value = key;
         supabaseClient = supabase.createClient(url, key);
         document.getElementById('status_conexao').innerHTML = '🟢 Conectado';
         document.getElementById('status_conexao').className = 'text-green-400 font-bold';
+        
+        // Fecha o painel de configurações para ocultar visualmente
+        const details = document.getElementById('painel_conexao_details');
+        if (details) details.removeAttribute('open');
       }
     }
 
     function salvarConfigSupabase() {
       const url = document.getElementById('supabase_url').value;
       const key = document.getElementById('supabase_key').value;
-      if (!url || !key) { alert("Preencha URL e Chave!"); return; }
+      if (!url || !key) { alert("Cole a chave Anon Public para conectar!"); return; }
+      
       localStorage.setItem('sp_url', url);
       localStorage.setItem('sp_key', key);
       inicializarSupabase();
-      alert("Conectado ao Supabase com sucesso!");
+      alert("Conectado e credenciais protegidas!");
     }
 
     async function enviarParaSupabase() {
       if (!supabaseClient) {
-        alert("Configure o Supabase primeiro no painel superior!");
+        alert("Configure a chave do Supabase primeiro no painel superior!");
         return;
       }
       const dt = document.getElementById('op_dt').value || 'SemDT';
@@ -730,7 +737,6 @@
       `).join('');
     }
 
-    // Auxiliar: Converte Data URL Base64 para objeto File para envio nativo
     function dataURLtoFile(dataurl, filename) {
       let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
           bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -754,7 +760,6 @@
         `📸 *Fotos Anexadas:* ${fotosCapturadas.length}\n` +
         `✅ *Parecer:* ${document.getElementById('parecer_veiculo').value}`;
 
-      // Prepara os arquivos reais das fotos para anexar no compartilhamento
       const arquivosFotos = fotosCapturadas.map((f, index) => {
         return dataURLtoFile(f.url, `foto_carga_${dt}_${index + 1}.jpg`);
       });
@@ -766,7 +771,6 @@
             text: textoResumo
           };
 
-          // Se houver fotos e o sistema suportar compartilhamento de arquivos
           if (arquivosFotos.length > 0 && navigator.canShare({ files: arquivosFotos })) {
             shareData.files = arquivosFotos;
           }
@@ -778,7 +782,6 @@
         }
       }
 
-      // Alternativa caso o navegador não suporte compartilhamento direto de arquivos
       window.print();
     }
   </script>
