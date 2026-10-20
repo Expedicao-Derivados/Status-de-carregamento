@@ -211,20 +211,20 @@
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="text-xs">Início</label>
-              <input type="text" id="temp_inicio" placeholder="°C" class="w-full p-1 border rounded text-center">
+              <input type="text" id="temp_inicio" placeholder="°C" onblur="validarTemperatura(this)" class="w-full p-1 border rounded text-center">
             </div>
             <div>
               <label class="text-xs">Meio</label>
-              <input type="text" id="temp_meio" placeholder="°C" class="w-full p-1 border rounded text-center">
+              <input type="text" id="temp_meio" placeholder="°C" onblur="validarTemperatura(this)" class="w-full p-1 border rounded text-center">
             </div>
             <div>
               <label class="text-xs">Fim</label>
-              <input type="text" id="temp_fim" placeholder="°C" class="w-full p-1 border rounded text-center">
+              <input type="text" id="temp_fim" placeholder="°C" onblur="validarTemperatura(this)" class="w-full p-1 border rounded text-center">
             </div>
           </div>
           <div class="mt-2">
             <label class="text-xs font-semibold">Temp. do Veículo (°C)</label>
-            <input type="text" id="temp_veiculo" placeholder="Ex: 4°C" class="w-full p-1 border rounded">
+            <input type="text" id="temp_veiculo" placeholder="Ex: 4°C" onblur="validarTemperatura(this)" class="w-full p-1 border rounded">
           </div>
         </div>
 
@@ -288,7 +288,7 @@
           </div>
         </div>
         <button onclick="adicionarRNC()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded no-print">
-          + Registrar Ocorrência / RNC
+          + Registrar Ocorrência / RNC (Exige Foto)
         </button>
 
         <ul id="lista_rncs" class="divide-y divide-gray-200 text-xs pt-2">
@@ -309,8 +309,8 @@
           <select id="tipo_foto_categoria" class="w-full p-2 border rounded bg-white font-bold text-xs">
             <option value="Foto de Palete Inteiro">📦 Foto de Palete Inteiro / Stretch</option>
             <option value="Foto de Etiqueta">🏷️ Foto de Etiqueta de Lote</option>
-            <option value="Foto de Baú / Lacre">🚛 Foto de Baú / Lacre / Termômetro</option>
-            <option value="Foto de Avaria / RNC">⚠️ Foto de Avaria / Não Conformidade</option>
+            <option value="Foto de Baú / Lacre">🚛 Foto de Baú / Lacre / Termômetro (Obrigatório Item 13)</option>
+            <option value="Foto de Avaria / RNC">⚠️ Foto de Avaria / Não Conformidade (Obrigatório c/ RNC)</option>
           </select>
         </div>
 
@@ -484,6 +484,8 @@
       listaRNCs = [];
       fotosCapturadas = [];
 
+      renderizarChecklist('checklist_veiculo', itensVeiculo);
+      renderizarChecklist('checklist_carregamento', itensCarregamento);
       atualizarListaItens();
       atualizarListaRNC();
       renderizarGaleriaFotos();
@@ -496,6 +498,14 @@
         alert("Configure a chave do Supabase primeiro no painel superior!");
         return;
       }
+
+      // Validação de segurança: Exigir foto do lacre / carga (Item 13)
+      const temFotoLacre = fotosCapturadas.some(f => f.cat.includes("Baú / Lacre"));
+      if (!temFotoLacre) {
+        alert("⚠️ ATENÇÃO: É obrigatório anexar pelo menos uma foto de 'Baú / Lacre' (Referente ao Item 13 do checklist) para transmitir a carga!");
+        return;
+      }
+
       const dt = document.getElementById('op_dt').value || 'SemDT';
       const placa = document.getElementById('op_placa').value || 'SemPlaca';
 
@@ -527,6 +537,7 @@
       }
     }
 
+    // CHECKLIST SEM SELEÇÃO PADRÃO (Nenhum radio vem marcado)
     function renderizarChecklist(idContainer, itens) {
       const container = document.getElementById(idContainer);
       container.innerHTML = itens.map((item, idx) => `
@@ -534,7 +545,7 @@
           <span class="pr-2">${item}</span>
           <div class="flex gap-1">
             <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
-              <input type="radio" name="${idContainer}_${idx}" value="C" checked> C
+              <input type="radio" name="${idContainer}_${idx}" value="C"> C
             </label>
             <label class="px-2 py-1 bg-gray-100 rounded border cursor-pointer">
               <input type="radio" name="${idContainer}_${idx}" value="NC"> NC
@@ -545,6 +556,21 @@
           </div>
         </div>
       `).join('');
+    }
+
+    // VALIDAÇÃO DE TEMPERATURA POR PRODUTO / VEÍCULO
+    function validarTemperatura(input) {
+      const val = parseFloat(input.value.replace(',', '.'));
+      if (isNaN(val)) return;
+
+      // Limite ideal para lácteos refrigerados: Máximo 7°C
+      if (val > 7.0) {
+        alert(`⚠️ ALERTA DE TEMPERATURA: ${val}°C está acima do limite recomendado (até 7°C para lácteos)! O parecer do veículo será ajustado para Restrição ou Reprovado.`);
+        document.getElementById('parecer_veiculo').value = 'Aprovado c/ restrição';
+        input.classList.add('border-red-500', 'bg-red-50');
+      } else {
+        input.classList.remove('border-red-500', 'bg-red-50');
+      }
     }
 
     function salvarRascunhoOffline() {
@@ -639,6 +665,7 @@
       document.getElementById('modal_scanner').classList.add('hidden');
     }
 
+    // VALIDAÇÃO DE DATAS E LOTE
     function adicionarItemConferido() {
       const mat = document.getElementById('item_material').value;
       const desc = document.getElementById('item_descricao').value;
@@ -652,6 +679,11 @@
 
       if (!mat || !lote || !qtdCx) {
         alert("Preencha ao menos Material, Lote e Qtd de Caixas!");
+        return;
+      }
+
+      if (lote.length < 3) {
+        alert("⚠️ Lote inválido. Verifique a informação da etiqueta.");
         return;
       }
 
@@ -695,6 +727,7 @@
       if (val) document.getElementById('rnc_correcao').value = val;
     }
 
+    // EXIGIR FOTO EM CASO DE RNC
     function adicionarRNC() {
       const desc = document.getElementById('rnc_desc').value;
       const corr = document.getElementById('rnc_correcao').value;
@@ -703,12 +736,21 @@
 
       if (!desc) { alert("Descreva a não conformidade."); return; }
 
+      // Verifica se existe foto de avaria/RNC tirada
+      const temFotoRNC = fotosCapturadas.some(f => f.cat.includes("Avaria / RNC"));
+      if (!temFotoRNC) {
+        alert("⚠️ OBRIGATÓRIO: Ao registrar uma RNC, você deve anexar uma foto na categoria 'Foto de Avaria / RNC' antes de prosseguir.");
+        return;
+      }
+
       listaRNCs.push({ desc, corr, num, resp, data: new Date().toLocaleTimeString() });
       atualizarListaRNC();
       salvarRascunhoOffline();
 
       document.getElementById('rnc_desc').value = '';
       document.getElementById('rnc_correcao').value = '';
+      document.getElementById('parecer_veiculo').value = 'Reprovado'; // Força reprovação automática se houver RNC grave
+      alert("⚠️ RNC registrada e veículo marcado automaticamente como Reprovado.");
     }
 
     function atualizarListaRNC() {
