@@ -111,12 +111,12 @@
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
             
             <button id="btnIniciarScanner" onclick="iniciarScannerEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
-                📷 Abrir Scanner de Etiqueta (Câmera)
+                📷 Abrir Scanner de Etiqueta (Point no QR Code)
             </button>
 
             <!-- ÁREA DE EXIBIÇÃO DO SCANNER DA CÂMERA -->
             <div id="containerScanner" class="hidden mb-3 p-2 bg-slate-900 rounded-lg text-center text-white">
-                <p class="text-xs mb-2">Aponte a câmera para o código de barras ou QR Code da etiqueta:</p>
+                <p class="text-xs mb-2">Aponte a câmera preferencialmente para o <b>QR Code</b> no lado direito da etiqueta:</p>
                 <div id="leitorCamera" class="w-full max-w-sm mx-auto overflow-hidden rounded"></div>
                 <button onclick="pararScanner()" class="mt-2 bg-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded">
                     Fechar Scanner
@@ -126,11 +126,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Material</label>
-                    <input type="text" id="material" placeholder="Ex: 1002161" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                    <input type="text" id="material" placeholder="Ex: 1000148" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Descrição do Produto</label>
-                    <input type="text" id="descricaoProduto" placeholder="Ex: REQUEIJAO CULINARIO 1,01KG" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                    <input type="text" id="descricaoProduto" placeholder="Ex: BEBIDA LACTEA MORANGO GAR 830 GR" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
                 </div>
             </div>
 
@@ -167,7 +167,7 @@
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Posição / Endereço</label>
-                    <input type="text" id="posicaoEndereco" placeholder="Ex: P11 C3" class="w-full border border-slate-300 rounded p-2 bg-amber-50">
+                    <input type="text" id="posicaoEndereco" placeholder="Ex: P27 A2 C1" class="w-full border border-slate-300 rounded p-2 bg-amber-50">
                 </div>
             </div>
 
@@ -339,6 +339,26 @@
         let listaRnc = [];
         let fotosCapturadas = [];
 
+        function emitirBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.log("Áudio não suportado ou bloqueado", e);
+            }
+        }
+
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
             containerV.innerHTML = itensVeiculo.map((item, idx) => `
@@ -365,7 +385,6 @@
             `).join('');
         }
 
-        // LÓGICA DO SCANNER DE CÓDIGO DE BARRAS / ETIQUETA REAL COM EXTRAÇÃO DE DADOS
         function iniciarScannerEtiqueta() {
             document.getElementById('containerScanner').classList.remove('hidden');
             
@@ -373,7 +392,7 @@
                 html5QrCode = new Html5Qrcode("leitorCamera");
             }
 
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            const config = { fps: 15, qrbox: { width: 260, height: 260 } };
 
             html5QrCode.start(
                 { facingMode: "environment" },
@@ -381,49 +400,87 @@
                 onScanSuccess,
                 onScanError
             ).catch(err => {
-                alert("Erro ao abrir a câmera para leitura. Verifique as permissões do navegador.");
+                alert("Erro ao abrir a câmera para leitura.");
                 console.error(err);
                 pararScanner();
             });
         }
 
+        // PARSER COMPLETO PARA A ETIQUETA DA TIROL / ETIQUETAS INDUSTRIAIS
         function onScanSuccess(decodedText) {
-            document.getElementById('udBarras').value = decodedText;
+            emitirBeep();
 
-            let textoLido = decodedText.trim();
-            
-            // Tenta extrair padrões GS1 ou delimitadores comuns (como parênteses ou separadores)
-            let material = "";
-            let lote = "";
-            let validade = "";
+            const raw = decodedText.trim();
 
-            // Expressões regulares para capturar identificadores comuns GS1: (01)GTIN, (10)Lote, (17)Validade AAMMDD
-            const matchMaterial = textoLido.match(/\(01\)(\d+)/) || textoLido.match(/01(\d{14})/);
-            const matchLote = textoLido.match(/\(10\)([A-Za-z0-9]+)/) || textoLido.match(/10([A-Za-z0-9]{4,10})/);
-            const matchValidade = textoLido.match(/\(17\)(\d{6})/) || textoLido.match(/17(\d{6})/);
+            // Função utilitária para converter datas DD.MM.YYYY para YYYY-MM-DD (padrão HTML input date)
+            const formatarData = (dStr) => {
+                if (!dStr) return '';
+                const parts = dStr.split(/[\.\/\-]/);
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                }
+                return dStr;
+            };
 
-            if (matchMaterial) material = matchMaterial[1];
-            if (matchLote) lote = matchLote[1];
-            
-            if (matchValidade) {
-                let v = matchValidade[1]; // YYMMDD
-                let ano = "20" + v.substring(0, 2);
-                let mes = v.substring(2, 4);
-                let dia = v.substring(4, 6);
-                validade = `${ano}-${mes}-${dia}`;
+            // 1. Tenta extrair valores quando vem formatado em linhas ou com delimitadores (CHAVE: VALOR)
+            const extrairValor = (regex) => {
+                const match = raw.match(regex);
+                return match ? match[1].trim() : '';
+            };
+
+            let mat = extrairValor(/Material:\s*([0-9]+)/i) || extrairValor(/Material\s*=\s*([0-9]+)/i);
+            let desc = extrairValor(/BEBIDA[^\n\r\|;]*/i) || extrairValor(/Descri[çc][ãa]o:\s*([^\n\r\|;]+)/i);
+            let lote = extrairValor(/LOTE:\s*([0-9A-Za-z]+)/i);
+            let fab = extrairValor(/FABRICA[ÇC][ÃA]O:\s*([0-9\.\/-]+)/i);
+            let venc = extrairValor(/VENCIMENTO:\s*([0-9\.\/-]+)/i);
+            let qtdUn = extrairValor(/QTDE\s*UN\s*PALLET:\s*([0-9\.,]+)/i);
+            let qtdCx = extrairValor(/QTDE\s*CX\s*PALLET:\s*([0-9\.,]+)/i);
+            let ud = extrairValor(/UD:\s*([0-9]+)/i);
+            let pos = extrairValor(/P\d+\s*A\d+\s*C\d+/i) || extrairValor(/Posi[çc][ãa]o:\s*([^\n\r\|;]+)/i);
+
+            // 2. Se o QR Code tiver delimitadores genéricos (ex: separados por ponto e vírgula ou pipe)
+            if (!mat && raw.includes(';')) {
+                const blocos = raw.split(';');
+                blocos.forEach(b => {
+                    if (b.startsWith('100')) mat = b;
+                    else if (b.length === 5 && !isNaN(b)) lote = b;
+                });
             }
 
-            // Se não for um formato GS1 estruturado, preenche os campos disponíveis por padrões simples
-            if (!material) {
-                // Caso seja apenas um código numérico direto (ex: 1002161 ou EAN)
-                material = textoLido.replace(/\D/g, '');
+            // 3. Padrão GS1 alternativo
+            if (!mat) {
+                const m01 = raw.match(/\(01\)(\d+)/);
+                if (m01) mat = m01[1];
+            }
+            if (!lote) {
+                const m10 = raw.match(/\(10\)([A-Za-z0-9]+)/);
+                if (m10) lote = m10[1];
             }
 
-            if (material) document.getElementById('material').value = material;
+            // Fallback caso a câmera tenha pego apenas o código numérico simples
+            if (!mat && !ud && !isNaN(raw)) {
+                if (raw.length >= 8) ud = raw;
+                else mat = raw;
+            }
+
+            // Preenche os campos da tela com tudo que conseguiu extrair
+            if (mat) document.getElementById('material').value = mat;
             if (lote) document.getElementById('lote').value = lote;
-            if (validade) document.getElementById('vencimento').value = validade;
+            if (fab) document.getElementById('fabricacao').value = formatarData(fab);
+            if (venc) document.getElementById('vencimento').value = formatarData(venc);
+            if (qtdCx) document.getElementById('qtdCxPallet').value = qtdCx.replace(',', '.');
+            if (qtdUn) document.getElementById('qtdUnPallet').value = qtdUn.replace(',', '.');
+            if (ud) document.getElementById('udBarras').value = ud;
+            if (pos) document.getElementById('posicaoEndereco').value = pos;
 
-            alert("Leitura realizada com sucesso!\n\nConteúdo: " + decodedText);
+            // Se encontrou descrição explícita ou por código do produto
+            if (desc) {
+                document.getElementById('descricaoProduto').value = desc;
+            } else if (mat === '1000148') {
+                document.getElementById('descricaoProduto').value = 'BEBIDA LACTEA MORANGO GAR 830 GR';
+            }
+
+            alert("Leitura efetuada com sucesso!\nDados capturados da etiqueta.");
             pararScanner();
         }
 
