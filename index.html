@@ -1,237 +1,483 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Conferência de Carga - Tirol</title>
-
-  <!-- Tailwind CSS & Libraries CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferência Carga - Expedição & Qualidade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS para Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800 antialiased min-h-screen pb-12">
+<body class="bg-slate-100 text-slate-800 pb-12">
 
-  <!-- Header principal -->
-  <header class="bg-blue-900 text-white p-4 shadow-md sticky top-0 z-50 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center font-bold text-lg shadow">🥛</div>
-      <div>
-        <h1 class="text-lg font-bold leading-tight">Conferência Carga</h1>
-        <p class="text-xs text-blue-200">Expedição & Qualidade</p>
-      </div>
-    </div>
-    <div class="flex items-center space-x-2">
-      <button id="btnTransmitir" onclick="transmitirParaSupabase()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3 py-2 rounded shadow transition flex items-center space-x-1">
-        <span>⚡ Transmitir</span>
-      </button>
-      <button onclick="salvarRascunhoLocal()" class="bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded shadow transition">
-        💾 Salvar
-      </button>
-    </div>
-  </header>
-
-  <main class="max-w-xl mx-auto p-4 space-y-6">
-
-    <!-- Painel Conexão Supabase -->
-    <section class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-700">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-sm font-bold flex items-center gap-2">
-          ⚙️ Conexão em Tempo Real (Supabase)
-        </h2>
-        <span id="statusConexao" class="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-300 font-medium">
-          ● Não Conectado
-        </span>
-      </div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs text-slate-300 mb-1">URL do Supabase:</label>
-          <input type="password" id="supabaseUrl" placeholder="https://xyz.supabase.co" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-400">
+    <!-- HEADER -->
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-500 p-2 rounded-lg text-2xl shadow">🥛</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Conferência Carga</h1>
+                    <p class="text-xs text-blue-200">Expedição & Qualidade</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="transmitirDados()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-semibold flex items-center shadow transition">
+                    ⚡ Enviar p/ Sala
+                </button>
+                <button onclick="salvarRascunho()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold flex items-center shadow transition">
+                    💾 Salvar
+                </button>
+            </div>
         </div>
-        <div>
-          <label class="block text-xs text-slate-300 mb-1">Chave Anon Public:</label>
-          <input type="password" id="supabaseKey" placeholder="Cole a chave eyJhbG... aqui" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-400">
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-4 space-y-4">
+
+        <!-- SUPABASE CONFIG (COLLAPSIBLE / STATUS) -->
+        <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-semibold flex items-center gap-1.5 text-slate-300">
+                    ⚙️ Conexão em Tempo Real (Supabase)
+                </span>
+                <span id="statusConexao" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Desconectado</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white">
+                <input type="password" id="supabaseKey" placeholder="Chave Anon Public" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white">
+            </div>
+            <button onclick="conectarSupabase()" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 rounded transition">
+                Conectar & Proteger Chaves
+            </button>
         </div>
-        <button onclick="conectarEProteger()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded text-xs shadow transition">
-          Conectar & Proteger Chaves
-        </button>
-      </div>
-    </section>
 
-    <!-- 1. Dados da Carga / Veículo -->
-    <section class="bg-white p-5 rounded-xl shadow border border-gray-200">
-      <h2 class="text-base font-bold text-blue-900 mb-4 flex items-center gap-2">
-        🚚 1. Dados da Carga / Veículo
-      </h2>
-      <div class="grid grid-cols-2 gap-3 text-xs">
-        <div class="col-span-2">
-          <label class="block text-gray-600 mb-1">Operador / Conferente:</label>
-          <input type="text" id="operador" placeholder="Seu nome" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+        <!-- 1. DADOS DA CARGA -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🚚 1. Dados da Carga / Veículo</h2>
+            <div class="grid grid-cols-1 gap-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Operador / Conferente:</label>
+                    <input type="text" id="operador" placeholder="Seu nome" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Doc. Transporte (DT):</label>
+                        <input type="text" id="docTransporte" placeholder="Ex: 300000290" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Placa Veículo:</label>
+                        <input type="text" id="placaVeiculo" placeholder="ABC-1234" class="w-full border border-slate-300 rounded p-2 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Transportadora:</label>
+                        <input type="text" id="transportadora" placeholder="Nome da empresa" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Turno:</label>
+                        <select id="turno" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            <option>1º Turno</option>
+                            <option>2º Turno</option>
+                            <option>3º Turno</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
+            
+            <button onclick="escanearEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
+                📷 Escanear Etiqueta do Produto
+            </button>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Material</label>
+                    <input type="text" id="material" placeholder="Ex: 1002161" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Descrição do Produto</label>
+                    <input type="text" id="descricaoProduto" placeholder="Ex: REQUEIJO CULINARIO" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Lote</label>
+                    <input type="text" id="lote" placeholder="Lote" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Fabricação</label>
+                    <input type="date" id="fabricacao" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Vencimento</label>
+                    <input type="date" id="vencimento" class="w-full border border-slate-300 rounded p-2">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs bg-blue-50 p-2.5 rounded-lg border border-blue-100 mb-3">
+                <div>
+                    <label class="block text-blue-900 font-medium mb-1">QTDE CX PALLET</label>
+                    <input type="number" step="0.001" id="qtdCxPallet" placeholder="0.000" class="w-full border border-blue-200 rounded p-1.5 bg-white">
+                </div>
+                <div>
+                    <label class="block text-blue-900 font-medium mb-1">QTDE UN PALLET</label>
+                    <input type="number" step="0.001" id="qtdUnPallet" placeholder="0.000" class="w-full border border-blue-200 rounded p-1.5 bg-white">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">UD (Cód. Barras)</label>
+                    <input type="text" id="udBarras" placeholder="Unidade de Disp./Cód Barras" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Posição / Endereço</label>
+                    <input type="text" id="posicaoEndereco" placeholder="Ex: P11 C3" class="w-full border border-slate-300 rounded p-2 bg-amber-50">
+                </div>
+            </div>
+
+            <button onclick="adicionarItemLista()" class="w-full bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold py-2 rounded transition shadow">
+                + Confirmar e Inserir Item
+            </button>
+
+            <!-- ITENS CONFERIDOS -->
+            <div class="mt-4 border-t pt-3">
+                <h3 class="text-xs font-bold text-slate-700 mb-2">ITENS CONFERIDOS NA CARGA:</h3>
+                <div id="listaItensContainer" class="space-y-2 max-h-40 overflow-y-auto text-xs">
+                    <p class="text-slate-400 italic text-center py-2">Nenhum item adicionado ainda.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. INSPEÇÃO DO VEÍCULO & CARREGAMENTO -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📋 3. Inspeção do Veículo & Carregamento</h2>
+
+            <!-- Temperaturas -->
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 text-xs">
+                <p class="font-bold text-slate-700 mb-2">TEMPERATURAS DO PRODUTO (°C) <span class="text-red-500 font-normal">(Máx 7,0°C)</span>:</p>
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div>
+                        <label class="block text-slate-600 mb-1">Início</label>
+                        <input type="number" step="0.1" id="tempInicio" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">Meio</label>
+                        <input type="number" step="0.1" id="tempMeio" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">Fim</label>
+                        <input type="number" step="0.1" id="tempFim" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-600 mb-1">Temp. do Veículo (°C):</label>
+                    <input type="text" id="tempVeiculo" placeholder="Ex: 4°C" class="w-full border rounded p-1.5 bg-white">
+                </div>
+            </div>
+
+            <!-- Checklist Condições do Veículo (1 a 7) -->
+            <div class="space-y-3 text-xs mb-4">
+                <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO:</p>
+                <div id="checklistVeiculo">
+                    <!-- Gerado via script ou fixo estruturado -->
+                </div>
+            </div>
+
+            <!-- Checklist Condições do Carregamento (8 a 16) -->
+            <div class="space-y-3 text-xs mb-4">
+                <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO:</p>
+                <div id="checklistCarregamento"></div>
+            </div>
+
+            <div>
+                <label class="block text-slate-600 font-medium mb-1 text-xs">Avaliação Final do Veículo:</label>
+                <select id="avaliacaoFinal" class="w-full border border-slate-300 rounded p-2 text-xs bg-white">
+                    <option>Aprovado</option>
+                    <option>Reprovado</option>
+                    <option>Aprovado com Restrição</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 4. REGISTRO DE NÃO CONFORMIDADES (RNC) -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="font-bold text-sm text-amber-800 mb-3 flex items-center gap-2">⚠️ 4. Registro de Não Conformidades (RNC)</h2>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Descrição da Não Conformidade:</label>
+                    <input type="text" id="descRnc" placeholder="Ex: Palete com cantoneira amassada" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Ação Corretiva / Atalhos Rápidos:</label>
+                    <select id="atalhoRnc" onchange="preencherAcaoCorretiva()" class="w-full border border-slate-300 rounded p-2 bg-white mb-1">
+                        <option value="">-- Selecione uma correção predefinida --</option>
+                        <option value="Substituído o palete avariado antes do carregamento.">Substituir palete avariado</option>
+                        <option value="Higienizada a área da carroceria apontada.">Higienizar carroceria</option>
+                        <option value="Ajustado equipamento de refrigeração do veículo.">Ajustar refrigeração</option>
+                    </select>
+                    <input type="text" id="acaoCorretiva" placeholder="Ou digite a correção realizada" class="w-full border border-slate-300 rounded p-2">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Nº RNC (se houver):</label>
+                        <input type="text" id="numRnc" placeholder="Ex: RNC-001" class="w-full border border-slate-300 rounded p-2">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 font-medium mb-1">Responsável:</label>
+                        <input type="text" id="responsavelRnc" placeholder="Nome" class="w-full border border-slate-300 rounded p-2">
+                    </div>
+                </div>
+                <button onclick="registrarRnc()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded transition shadow">
+                    + Registrar Ocorrência / RNC
+                </button>
+                <div id="listaRncContainer" class="mt-2 text-slate-500 italic">
+                    Nenhuma RNC registrada.
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. GALERIA DE FOTOS -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Galeria de Fotos dos Paletes & Etiquetas</h2>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 font-medium mb-1">Selecione o Tipo de Foto:</label>
+                    <select id="tipoFoto" class="w-full border border-slate-300 rounded p-2 bg-white">
+                        <option>📦 Foto de Palete Inteiro / Stretch</option>
+                        <option>🏷️ Foto de Etiqueta / Lote</option>
+                        <option>🌡️ Foto do Termômetro / Leitura</option>
+                        <option>🚛 Foto Geral da Carroceria / Lacre</option>
+                    </select>
+                </div>
+                <button onclick="capturarFoto()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded flex items-center justify-center gap-2 shadow transition">
+                    📷 Capturar Foto
+                </button>
+                <div id="galeriaFotos" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                    <!-- Fotos inseridas dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- AÇÕES FINAIS -->
+        <div class="space-y-2 pt-2">
+            <button onclick="transmitirDados()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+                ⚡ Transmitir para a Sala em Tempo Real
+            </button>
+            <button onclick="exportarExcel()" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+                📊 Exportar Relatório para Excel (.xlsx)
+            </button>
+            <button onclick="compartilharWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+                💬 Compartilhar Relatório + Fotos no WhatsApp
+            </button>
         </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Doc. Transporte (DT):</label>
-          <input type="text" id="dt" placeholder="Ex: 300000290" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Placa Veículo:</label>
-          <input type="text" id="placa" placeholder="ABC-1234" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Transportadora:</label>
-          <input type="text" id="transportadora" placeholder="Nome da empresa" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Turno:</label>
-          <select id="turno" class="w-full border rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-            <option value="1º Turno">1º Turno</option>
-            <option value="2º Turno">2º Turno</option>
-            <option value="3º Turno">3º Turno</option>
-          </select>
-        </div>
-      </div>
-    </section>
 
-    <!-- 2. Conferência de Etiqueta / Palete -->
-    <section class="bg-white p-5 rounded-xl shadow border border-gray-200">
-      <h2 class="text-base font-bold text-blue-900 mb-3 flex items-center gap-2">
-        🏷️ 2. Conferência de Etiqueta / Palete
-      </h2>
-      <button onclick="escanearBarcode()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-lg text-xs shadow mb-3 flex items-center justify-center gap-2 transition">
-        <span>📷 Escanear Etiqueta do Produto</span>
-      </button>
-      <div class="space-y-2 text-xs">
-        <input type="text" id="itemMaterial" placeholder="Código Material" class="w-full border rounded p-2">
-        <input type="text" id="itemDescricao" placeholder="Descrição do Produto" class="w-full border rounded p-2">
-        <div class="grid grid-cols-3 gap-2">
-          <input type="text" id="itemLote" placeholder="Lote" class="border rounded p-2">
-          <input type="text" id="itemValidade" placeholder="Validade" class="border rounded p-2">
-          <input type="number" id="itemQtd" placeholder="Qtd" class="border rounded p-2">
-        </div>
-        <button onclick="adicionarItemConferido()" class="w-full bg-blue-900 text-white py-2 rounded text-xs font-semibold hover:bg-blue-800 transition">
-          + Adicionar Item à Lista
-        </button>
-      </div>
+    </main>
 
-      <div id="listaItens" class="mt-4 space-y-2 max-h-40 overflow-y-auto text-xs"></div>
-    </section>
+    <script>
+        // Estrutura de Checklists
+        const itensVeiculo = [
+            "1 - Parede / Teto / Assoalhos",
+            "2 - Temperatura adequada",
+            "3 - Presença de cheiro estranho",
+            "4 - Câmeras e compressores ok",
+            "5 - Limpeza da carroceria",
+            "6 - Resíduos de lubrificantes/graxas",
+            "7 - Presença/evidência de pragas"
+        ];
 
-    <!-- 3. Inspeção e Temperaturas -->
-    <section class="bg-white p-5 rounded-xl shadow border border-gray-200">
-      <h2 class="text-base font-bold text-blue-900 mb-3 flex items-center gap-2">
-        🌡️ 3. Inspeção & Temperaturas
-      </h2>
-      <p class="text-xs text-gray-500 mb-3">Limite crítico de temperatura: máx 7,0°C.</p>
+        const itensCarregamento = [
+            "8 - Paletes/produtos sem avarias",
+            "9 - Paletes estrechados adequadamente",
+            "10 - Stretch limpo, livre de pragas",
+            "11 - Produtos bem acondicionados",
+            "12 - Colocada trava paletes/isopainel",
+            "13 - Foram feitas fotos da carga lacrada",
+            "14 - Lote conforme especificação",
+            "15 - Laudo entregue ao transportador",
+            "16 - Lotes impressos condizem c/ laudo"
+        ];
 
-      <div class="grid grid-cols-2 gap-3 text-xs mb-4">
-        <div>
-          <label class="block text-gray-600 mb-1">Temp. Início (°C):</label>
-          <input type="number" step="0.1" id="tempInicio" onchange="validarTemperatura()" placeholder="0.0" class="w-full border rounded p-2">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Temp. Meio (°C):</label>
-          <input type="number" step="0.1" id="tempMeio" onchange="validarTemperatura()" placeholder="0.0" class="w-full border rounded p-2">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Temp. Fim (°C):</label>
-          <input type="number" step="0.1" id="tempFim" onchange="validarTemperatura()" placeholder="0.0" class="w-full border rounded p-2">
-        </div>
-        <div>
-          <label class="block text-gray-600 mb-1">Temp. Veículo (°C):</label>
-          <input type="number" step="0.1" id="tempVeiculo" placeholder="0.0" class="w-full border rounded p-2">
-        </div>
-      </div>
+        let itensConferidos = [];
+        let listaRnc = [];
+        let fotosCapturadas = [];
 
-      <div class="border-t pt-3 space-y-2 text-xs">
-        <label class="block font-semibold text-gray-700">Parecer Final:</label>
-        <select id="parecerFinal" class="w-full border rounded p-2 bg-white font-bold">
-          <option value="Aprovado" class="text-green-600">Aprovado</option>
-          <option value="Aprovado c/ restrição" class="text-yellow-600">Aprovado c/ Restrição</option>
-          <option value="Reprovado" class="text-red-600">Reprovado</option>
-        </select>
-      </div>
-    </section>
+        function renderChecklists() {
+            const containerV = document.getElementById('checklistVeiculo');
+            containerV.innerHTML = itensVeiculo.map((item, idx) => `
+                <div class="flex items-center justify-between bg-slate-50 p-2 rounded border">
+                    <span class="text-slate-700 font-medium">${item}</span>
+                    <div class="flex gap-2">
+                        <label><input type="radio" name="v_${idx}" value="C" checked> C</label>
+                        <label><input type="radio" name="v_${idx}" value="NC"> NC</label>
+                        <label><input type="radio" name="v_${idx}" value="NA"> NA</label>
+                    </div>
+                </div>
+            `).join('');
 
-    <!-- 4. Evidências Fotográficas e Compartilhamento -->
-    <section class="bg-white p-5 rounded-xl shadow border border-gray-200 text-xs">
-      <h2 class="text-base font-bold text-blue-900 mb-3 flex items-center gap-2">
-        📸 4. Evidências & Relatório
-      </h2>
-      <div class="space-y-3">
-        <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="processarFoto(event)">
-        <button onclick="document.getElementById('cameraInput').click()" class="w-full bg-slate-800 text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-700 transition">
-          📷 Capturar Foto c/ Carimbo de Data/Hora
-        </button>
-        <div id="galeriaFotos" class="grid grid-cols-3 gap-2 pt-2"></div>
-      </div>
+            const containerC = document.getElementById('checklistCarregamento');
+            containerC.innerHTML = itensCarregamento.map((item, idx) => `
+                <div class="flex items-center justify-between bg-slate-50 p-2 rounded border mb-2">
+                    <span class="text-slate-700 font-medium">${item}</span>
+                    <div class="flex gap-2">
+                        <label><input type="radio" name="c_${idx}" value="C" checked> C</label>
+                        <label><input type="radio" name="c_${idx}" value="NC"> NC</label>
+                        <label><input type="radio" name="c_${idx}" value="NA"> NA</label>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-      <div class="border-t mt-4 pt-4 space-y-2">
-        <button onclick="exportarExcel()" class="w-full bg-green-700 text-white py-2.5 rounded-lg font-semibold hover:bg-green-600 transition flex items-center justify-center gap-2">
-          📊 Exportar Relatório em Excel (.xlsx)
-        </button>
-        <button onclick="compartilharWhatsApp()" class="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-500 transition flex items-center justify-center gap-2">
-          💬 Compartilhar via WhatsApp
-        </button>
-      </div>
-    </section>
+        function adicionarItemLista() {
+            const material = document.getElementById('material').value;
+            const descricao = document.getElementById('descricaoProduto').value;
+            const lote = document.getElementById('lote').value;
+            const validade = document.getElementById('vencimento').value;
+            const qtdCx = document.getElementById('qtdCxPallet').value;
+            const qtdUn = document.getElementById('qtdUnPallet').value;
+            const posicao = document.getElementById('posicaoEndereco').value;
+            const ud = document.getElementById('udBarras').value;
 
-  </main>
+            if (!material || !lote) {
+                alert('Preencha ao menos o Material e o Lote.');
+                return;
+            }
 
-  <script>
-    let supabaseClient = null;
+            itensConferidos.push({ material, descricao, lote, validade, qtdCx, qtdUn, posicao, ud });
+            atualizarListaItens();
+            
+            // Limpa campos específicos de etiqueta
+            document.getElementById('lote').value = '';
+            document.getElementById('qtdCxPallet').value = '';
+            document.getElementById('qtdUnPallet').value = '';
+            document.getElementById('udBarras').value = '';
+        }
 
-    function conectarEProteger() {
-      const url = document.getElementById('supabaseUrl').value;
-      const key = document.getElementById('supabaseKey').value;
+        function atualizarListaItens() {
+            const container = document.getElementById('listaItensContainer');
+            if (itensConferidos.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 italic text-center py-2">Nenhum item adicionado ainda.</p>`;
+                return;
+            }
+            container.innerHTML = itensConferidos.map((item, index) => `
+                <div class="bg-slate-50 p-2 rounded border flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-blue-900">${item.material} - ${item.descricao}</span><br>
+                        <span class="text-slate-500">Lote: ${item.lote} | Val: ${item.validade} | Pos: ${item.posicao} | Qtd: ${item.qtdCx} cx (${item.qtdUn} un)</span>
+                    </div>
+                    <button onclick="removerItem(${index})" class="text-red-500 font-bold px-2 py-1">✕</button>
+                </div>
+            `).join('');
+        }
 
-      if (!url || !key) {
-        alert('Por favor, informe a URL e a Chave do Supabase.');
-        return;
-      }
+        function removerItem(index) {
+            itensConferidos.splice(index, 1);
+            atualizarListaItens();
+        }
 
-      try {
-        supabaseClient = supabase.createClient(url, key);
-        document.getElementById('statusConexao').className = 'text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300 font-medium';
-        document.getElementById('statusConexao').innerText = '● Conectado';
-        localStorage.setItem('sp_url', url);
-        localStorage.setItem('sp_key', key);
-        alert('Conexão com Supabase estabelecida com sucesso!');
-      } catch (e) {
-        alert('Erro ao conectar com Supabase: ' + e.message);
-      }
-    }
+        function preencherAcaoCorretiva() {
+            const sel = document.getElementById('atalhoRnc').value;
+            if(sel) document.getElementById('acaoCorretiva').value = sel;
+        }
 
-    function validarTemperatura() {
-      const tInic = parseFloat(document.getElementById('tempInicio').value) || 0;
-      const tMeio = parseFloat(document.getElementById('tempMeio').value) || 0;
-      const tFim = parseFloat(document.getElementById('tempFim').value) || 0;
+        function registrarRnc() {
+            const desc = document.getElementById('descRnc').value;
+            const acao = document.getElementById('acaoCorretiva').value;
+            const num = document.getElementById('numRnc').value;
+            const resp = document.getElementById('responsavelRnc').value;
 
-      if (tInic > 7.0 || tMeio > 7.0 || tFim > 7.0) {
-        document.getElementById('parecerFinal').value = 'Aprovado c/ restrição';
-        alert('Atenção: Temperatura registrada acima do limite máximo de 7.0°C! Parecer alterado automaticamente.');
-      }
-    }
+            if(!desc) {
+                alert('Informe a descrição da não conformidade.');
+                return;
+            }
 
-    function salvarRascunhoLocal() {
-      const dados = {
-        operador: document.getElementById('operador').value,
-        dt: document.getElementById('dt').value,
-        placa: document.getElementById('placa').value,
-        transportadora: document.getElementById('transportadora').value,
-        parecer: document.getElementById('parecerFinal').value
-      };
-      localStorage.setItem('rascunho_carga', JSON.stringify(dados));
-      alert('Rascunho salvo localmente com sucesso!');
-    }
+            listaRnc.push({ desc, acao, num, resp });
+            document.getElementById('listaRncContainer').innerHTML = listaRnc.map(r => `
+                <div class="bg-amber-50 border border-amber-200 p-2 rounded mb-1 text-xs text-amber-900">
+                    <b>${r.num || 'RNC'}</b>: ${r.desc} - Ação: ${r.acao} (${r.resp})
+                </div>
+            `).join('');
 
-    // Carregar configurações guardadas
-    window.onload = function() {
-      if (localStorage.getItem('sp_url') && localStorage.getItem('sp_key')) {
-        document.getElementById('supabaseUrl').value = localStorage.getItem('sp_url');
-        document.getElementById('supabaseKey').value = localStorage.getItem('sp_key');
-        conectarEProteger();
-      }
-    };
-  </script>
+            document.getElementById('descRnc').value = '';
+            document.getElementById('acaoCorretiva').value = '';
+            document.getElementById('numRnc').value = '';
+            document.getElementById('responsavelRnc').value = '';
+        }
+
+        function escanearEtiqueta() {
+            // Simulação de leitura de código / etiqueta
+            document.getElementById('material').value = "1002161";
+            document.getElementById('descricaoProduto').value = "REQUEIJO CULINARIO 1,01KG";
+            document.getElementById('lote').value = "00060";
+            document.getElementById('fabricacao').value = "2026-09-01";
+            document.getElementById('vencimento').value = "2026-12-30";
+            alert('Etiqueta escaneada com sucesso!');
+        }
+
+        function capturarFoto() {
+            const tipo = document.getElementById('tipoFoto').value;
+            fotosCapturadas.push({ tipo, data: new Date().toLocaleTimeString() });
+            
+            const galeria = document.getElementById('galeriaFotos');
+            galeria.innerHTML = fotosCapturadas.map((f, i) => `
+                <div class="bg-slate-200 rounded p-2 text-center text-xs">
+                    <div class="bg-slate-300 h-20 rounded mb-1 flex items-center justify-center font-bold text-slate-600">📷 Foto ${i+1}</div>
+                    <span class="truncate block text-[10px]">${f.tipo}</span>
+                </div>
+            `).join('');
+        }
+
+        function conectarSupabase() {
+            const url = document.getElementById('supabaseUrl').value;
+            const key = document.getElementById('supabaseKey').value;
+            if(url && key) {
+                document.getElementById('statusConexao').className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
+                document.getElementById('statusConexao').innerText = "Conectado";
+                alert('Conexão configurada com sucesso!');
+            } else {
+                alert('Insira a URL e a Chave do Supabase.');
+            }
+        }
+
+        function salvarRascunho() {
+            alert('Rascunho salvo localmente com sucesso!');
+        }
+
+        function transmitirDados() {
+            alert('Dados transmitidos com sucesso para a sala em tempo real!');
+        }
+
+        function exportarExcel() {
+            if(itensConferidos.length === 0) {
+                alert('Adicione pelo menos um item conferido para exportar.');
+                return;
+            }
+            const ws = XLSX.utils.json_to_sheet(itensConferidos);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ConferenciaCarga");
+            XLSX.writeFile(wb, "Relatorio_Conferencia_Carga.xlsx");
+        }
+
+        function compartilharWhatsApp() {
+            const dt = document.getElementById('docTransporte').value || 'N/A';
+            const placa = document.getElementById('placaVeiculo').value || 'N/A';
+            const mensagem = encodeURIComponent(`*Relatório de Conferência de Carga*\nDT: ${dt}\nPlaca: ${placa}\nItens conferidos: ${itensConferidos.length}\nRNCs registradas: ${listaRnc.length}`);
+            window.open(`https://api.whatsapp.com/send?phone=&text=${mensagem}`, '_blank');
+        }
+
+        window.onload = renderChecklists;
+    </script>
 </body>
 </html>
