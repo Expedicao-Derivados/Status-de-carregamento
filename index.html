@@ -40,7 +40,7 @@
 
     <main class="max-w-4xl mx-auto px-4 mt-4 space-y-4">
 
-        <!-- SUPABASE CONFIG (COM BOTÃO DE DESCONECTAR E SALVAMENTO AUTOMÁTICO) -->
+        <!-- SUPABASE CONFIG -->
         <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-semibold flex items-center gap-1.5 text-slate-300">
@@ -49,7 +49,6 @@
                 <span id="statusConexao" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Desconectado</span>
             </div>
             
-            <!-- Painel de Inputs (Visível quando desconectado) -->
             <div id="painelInputs" class="space-y-2 mt-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
@@ -60,7 +59,6 @@
                 </button>
             </div>
 
-            <!-- Painel Seguro / Conectado (Visível quando conectado, com botão de Desconectar) -->
             <div id="painelSeguro" class="hidden mt-2 flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700 text-xs">
                 <span class="text-emerald-400 font-medium flex items-center gap-1.5">
                     🔒 Conectado e credenciais ocultas com segurança
@@ -110,10 +108,6 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
             
-            <button onclick="escanearEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
-                📷 Escanear Etiqueta do Produto
-            </button>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Material</label>
@@ -166,7 +160,6 @@
                 + Confirmar e Inserir Item
             </button>
 
-            <!-- ITENS CONFERIDOS -->
             <div class="mt-4 border-t pt-3">
                 <h3 class="text-xs font-bold text-slate-700 mb-2">ITENS CONFERIDOS NA CARGA:</h3>
                 <div id="listaItensContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs">
@@ -179,7 +172,6 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📋 3. Inspeção do Veículo & Carregamento</h2>
 
-            <!-- Registros de Temperatura -->
             <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 text-xs">
                 <p class="font-bold text-slate-700 mb-2">TEMPERATURAS DO PRODUTO (°C) <span class="text-red-500 font-normal">(Máx 7,0°C)</span>:</p>
                 <div class="grid grid-cols-3 gap-2 mb-2">
@@ -202,13 +194,11 @@
                 </div>
             </div>
 
-            <!-- Checklist Condições do Veículo -->
             <div class="space-y-3 text-xs mb-4">
                 <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO:</p>
                 <div id="checklistVeiculo"></div>
             </div>
 
-            <!-- Checklist Condições do Carregamento -->
             <div class="space-y-3 text-xs mb-4">
                 <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO:</p>
                 <div id="checklistCarregamento"></div>
@@ -262,7 +252,7 @@
             </div>
         </section>
 
-        <!-- 5. GALERIA DE FOTOS -->
+        <!-- 5. GALERIA DE FOTOS (CÂMERA REAL DO CELULAR) -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Galeria de Fotos dos Paletes & Etiquetas</h2>
             <div class="space-y-3 text-xs">
@@ -275,11 +265,16 @@
                         <option>🚛 Foto Geral da Carroceria / Lacre</option>
                     </select>
                 </div>
-                <button onclick="capturarFoto()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded flex items-center justify-center gap-2 shadow transition">
-                    📷 Capturar Foto
+                
+                <!-- Input de arquivo invisível acionado pela câmera real do dispositivo -->
+                <input type="file" id="inputCameraReal" accept="image/*" capture="environment" class="hidden" onchange="processarFotoCapturada(event)">
+
+                <button onclick="acionarCameraReal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded flex items-center justify-center gap-2 shadow transition">
+                    📷 Abrir Câmera e Tirar Foto
                 </button>
+
                 <div id="galeriaFotos" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                    <!-- Inseridas dinamicamente -->
+                    <!-- Fotos tiradas aparecem aqui -->
                 </div>
             </div>
         </section>
@@ -293,7 +288,7 @@
                 📊 Exportar Relatório para Excel (.xlsx)
             </button>
             <button onclick="compartilharWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
-                💬 Compartilhar Relatório + Fotos no WhatsApp
+                💬 Compartilhar Relatório no WhatsApp
             </button>
         </div>
 
@@ -327,7 +322,7 @@
 
         let itensConferidos = [];
         let listaRnc = [];
-        let fotosCapturadas = [];
+        let fotosCapturadas = []; // Armazena os dados das fotos reais (base64)
 
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
@@ -387,7 +382,6 @@
             }
         }
 
-        // Função para Desconectar / Limpar as credenciais salvas
         function desconectarSupabase() {
             localStorage.removeItem('supabase_url');
             localStorage.removeItem('supabase_key');
@@ -403,7 +397,7 @@
             document.getElementById('painelInputs').classList.remove('hidden');
             document.getElementById('painelSeguro').classList.add('hidden');
 
-            alert('Desconectado com sucesso. Insira novas chaves se necessário.');
+            alert('Desconectado com sucesso.');
         }
 
         function carregarConexaoSalva() {
@@ -448,9 +442,14 @@
             itensConferidos.push({ material, descricao, lote, validade, qtdCx, qtdUn, posicao, ud });
             atualizarListaItens();
 
+            document.getElementById('material').value = '';
+            document.getElementById('descricaoProduto').value = '';
             document.getElementById('lote').value = '';
+            document.getElementById('fabricacao').value = '';
+            document.getElementById('vencimento').value = '';
             document.getElementById('qtdCxPallet').value = '';
             document.getElementById('qtdUnPallet').value = '';
+            document.getElementById('posicaoEndereco').value = '';
             document.getElementById('udBarras').value = '';
         }
 
@@ -505,30 +504,47 @@
             document.getElementById('responsavelRnc').value = '';
         }
 
-        function escanearEtiqueta() {
-            document.getElementById('material').value = "1002161";
-            document.getElementById('descricaoProduto').value = "REQUEIJO CULINARIO 1,01KG";
-            document.getElementById('lote').value = "00060";
-            document.getElementById('fabricacao').value = "2026-09-01";
-            document.getElementById('vencimento').value = "2026-12-30";
-            alert('Etiqueta escaneada com sucesso!');
+        // Aciona a câmera real do dispositivo móvel
+        function acionarCameraReal() {
+            document.getElementById('inputCameraReal').click();
         }
 
-        function capturarFoto() {
-            const tipo = document.getElementById('tipoFoto').value;
-            fotosCapturadas.push({ tipo, data: new Date().toLocaleTimeString() });
+        // Processa a foto tirada pela câmera real
+        function processarFotoCapturada(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const tipo = document.getElementById('tipoFoto').value;
+                const base64Image = e.target.result;
+
+                fotosCapturadas.push({ tipo, url: base64Image, hora: new Date().toLocaleTimeString() });
+                atualizarGaleriaFotos();
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; // Limpa para permitir tirar outra foto igual
+        }
+
+        function atualizarGaleriaFotos() {
             const galeria = document.getElementById('galeriaFotos');
             galeria.innerHTML = fotosCapturadas.map((f, i) => `
-                <div class="bg-slate-200 rounded p-2 text-center text-xs">
-                    <div class="bg-slate-300 h-20 rounded mb-1 flex items-center justify-center font-bold text-slate-600">📷 Foto ${i+1}</div>
-                    <span class="truncate block text-[10px]">${f.tipo}</span>
+                <div class="bg-slate-50 border rounded p-1 text-center text-xs relative">
+                    <img src="${f.url}" class="h-24 w-full object-cover rounded mb-1">
+                    <span class="truncate block text-[10px] font-semibold">${f.tipo}</span>
+                    <span class="text-[9px] text-slate-400">${f.hora}</span>
+                    <button onclick="removerFoto(${i})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">✕</button>
                 </div>
             `).join('');
         }
 
+        function removerFoto(i) {
+            fotosCapturadas.splice(i, 1);
+            atualizarGaleriaFotos();
+        }
+
         function salvarRascunho() {
-            alert('Rascunho salvo localmente!');
+            alert('Rascunho salvo localmente no dispositivo!');
         }
 
         async function transmitirDados() {
@@ -582,6 +598,7 @@
                 checklist_veiculo: respostasVeiculo,
                 checklist_carregamento: respostasCarregamento,
                 rncs: listaRnc,
+                fotos: fotosCapturadas,
                 avaliacao_final: avaliacaoFinal,
                 criado_em: new Date().toISOString()
             };
@@ -593,10 +610,10 @@
 
                 if (error) throw error;
 
-                alert('Dados transmitidos com sucesso para a sala!');
+                alert('Dados e fotos transmitidos com sucesso para a sala em tempo real!');
             } catch (err) {
                 console.error('Erro de transmissão:', err);
-                alert('Erro ao enviar dados. Verifique se a tabela "conferencia_carga" existe no Supabase.');
+                alert('Erro ao enviar dados. Verifique a tabela "conferencia_carga" no Supabase.');
             }
         }
 
@@ -614,7 +631,7 @@
         function compartilharWhatsApp() {
             const dt = document.getElementById('docTransporte').value || 'N/A';
             const placa = document.getElementById('placaVeiculo').value || 'N/A';
-            const mensagem = encodeURIComponent(`*Relatório de Conferência de Carga*\nDT: ${dt}\nPlaca: ${placa}\nItens conferidos: ${itensConferidos.length}\nRNCs registradas: ${listaRnc.length}`);
+            const mensagem = encodeURIComponent(`*Relatório de Conferência de Carga*\nDT: ${dt}\nPlaca: ${placa}\nItens conferidos: ${itensConferidos.length}\nRNCs registradas: ${listaRnc.length}\nFotos tiradas: ${fotosCapturadas.length}`);
             window.open(`https://api.whatsapp.com/send?phone=&text=${mensagem}`, '_blank');
         }
 
