@@ -108,9 +108,12 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
             
-            <!-- Botão de Escanear Etiqueta restaurado -->
-            <button onclick="escanearEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
-                📷 Escanear Etiqueta do Produto
+            <!-- Input de arquivo invisível para a câmera real da etiqueta -->
+            <input type="file" id="inputCameraEtiqueta" accept="image/*" capture="environment" class="hidden" onchange="processarFotoEtiqueta(event)">
+
+            <!-- Botão que agora abre a câmera real -->
+            <button onclick="acionarCameraEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
+                📷 Abrir Câmera para Etiqueta
             </button>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
@@ -257,7 +260,7 @@
             </div>
         </section>
 
-        <!-- 5. GALERIA DE FOTOS (CÂMERA REAL DO CELULAR) -->
+        <!-- 5. GALERIA DE FOTOS -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Galeria de Fotos dos Paletes & Etiquetas</h2>
             <div class="space-y-3 text-xs">
@@ -428,14 +431,24 @@
             }
         }
 
-        // Função de atalho de preenchimento da etiqueta
-        function escanearEtiqueta() {
-            document.getElementById('material').value = "1002161";
-            document.getElementById('descricaoProduto').value = "REQUEIJO CULINARIO 1,01KG";
-            document.getElementById('lote').value = "00060";
-            document.getElementById('fabricacao').value = "2026-09-01";
-            document.getElementById('vencimento').value = "2026-12-30";
-            alert('Etiqueta simulada/preenchida com sucesso!');
+        // Câmera real acionada pelo botão de etiqueta
+        function acionarCameraEtiqueta() {
+            document.getElementById('inputCameraEtiqueta').click();
+        }
+
+        function processarFotoEtiqueta(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                fotosCapturadas.push({ tipo: '🏷️ Foto de Etiqueta / Lote', url: base64Image, hora: new Date().toLocaleTimeString() });
+                atualizarGaleriaFotos();
+                alert('Foto da etiqueta capturada e salva com sucesso!');
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
         }
 
         function adicionarItemLista() {
