@@ -5,16 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Conferência de Carga - Tirol</title>
 
-  <!-- PWA & Favicon Metadata -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="512x512" href="icone_512.png">
-  <link rel="apple-touch-icon" href="icone_arredondado_512.png">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Tirol Cargas">
-  <meta name="theme-color" content="#1e3a8a">
-
   <!-- Tailwind CSS & Libraries CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,7 +16,7 @@
   <!-- Header principal -->
   <header class="bg-blue-900 text-white p-4 shadow-md sticky top-0 z-50 flex items-center justify-between">
     <div class="flex items-center space-x-3">
-      <img src="icone_arredondado_512.png" alt="Logo App" class="w-10 h-10 rounded-lg shadow">
+      <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center font-bold text-lg shadow">🥛</div>
       <div>
         <h1 class="text-lg font-bold leading-tight">Conferência Carga</h1>
         <p class="text-xs text-blue-200">Expedição & Qualidade</p>
@@ -188,13 +178,6 @@
   </main>
 
   <script>
-    // Registro do Service Worker para suporte PWA Offline
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW falhou:', err));
-      });
-    }
-
     let supabaseClient = null;
 
     function conectarEProteger() {
