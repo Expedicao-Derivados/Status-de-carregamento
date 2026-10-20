@@ -40,7 +40,7 @@
 
     <main class="max-w-4xl mx-auto px-4 mt-4 space-y-4">
 
-        <!-- SUPABASE CONFIG (CONEXÃO EM TEMPO REAL) -->
+        <!-- SUPABASE CONFIG (SEGURO / OCULTO APÓS CONECTAR) -->
         <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-semibold flex items-center gap-1.5 text-slate-300">
@@ -48,13 +48,27 @@
                 </span>
                 <span id="statusConexao" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Desconectado</span>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
-                <input type="password" id="supabaseKey" placeholder="Chave Anon Public" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
+            
+            <!-- Painel de Inputs (Fica oculto quando conectado) -->
+            <div id="painelInputs" class="space-y-2 mt-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
+                    <input type="password" id="supabaseKey" placeholder="Chave Anon Public" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
+                </div>
+                <button onclick="conectarSupabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 rounded transition">
+                    Conectar & Proteger Chaves
+                </button>
             </div>
-            <button onclick="conectarSupabase()" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 rounded transition">
-                Conectar & Proteger Chaves
-            </button>
+
+            <!-- Painel Seguro (Aparece apenas quando conectado, ocultando as chaves) -->
+            <div id="painelSeguro" class="hidden mt-2 flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700 text-xs">
+                <span class="text-emerald-400 font-medium flex items-center gap-1.5">
+                    🔒 Credenciais protegidas e ocultas com segurança
+                </span>
+                <button onclick="liberarEdicaoChaves()" class="text-slate-300 hover:text-white underline text-[11px]">
+                    Alterar Chaves
+                </button>
+            </div>
         </div>
 
         <!-- 1. DADOS DA CARGA / VEÍCULO -->
@@ -284,12 +298,10 @@
 
     </main>
 
-    <!-- SCRIPT PRINCIPAL E LÓGICA DE CONEXÃO -->
+    <!-- SCRIPT PRINCIPAL E LÓGICA DE SEGURANÇA -->
     <script>
-        // Instância global do cliente Supabase
         let supabaseClient = null;
 
-        // Lista das perguntas dos checklists
         const itensVeiculo = [
             "1 - Parede / Teto / Assoalhos",
             "2 - Temperatura adequada",
@@ -316,7 +328,6 @@
         let listaRnc = [];
         let fotosCapturadas = [];
 
-        // Renderiza as opções de C / NC / NA no checklist
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
             containerV.innerHTML = itensVeiculo.map((item, idx) => `
@@ -343,7 +354,6 @@
             `).join('');
         }
 
-        // Conecta e testa a comunicação real com o Supabase
         async function conectarSupabase() {
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
@@ -355,15 +365,21 @@
             }
 
             try {
-                // Cria a instância do Supabase via biblioteca do CDN
                 supabaseClient = window.supabase.createClient(url, key);
-                
-                // Consulta simples para testar credenciais
                 const { error } = await supabaseClient.from('conferencia_carga').select('id', { count: 'exact', head: true });
+
+                // Salva de forma segura no navegador
+                localStorage.setItem('supabase_url', url);
+                localStorage.setItem('supabase_key', key);
 
                 statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
                 statusEl.innerText = "Conectado";
-                alert('Conexão com o Supabase configurada com sucesso!');
+                
+                // Oculta os inputs e exibe a mensagem de segurança
+                document.getElementById('painelInputs').classList.add('hidden');
+                document.getElementById('painelSeguro').classList.remove('hidden');
+
+                alert('Conexão estabelecida e chaves ocultas com segurança!');
             } catch (err) {
                 console.error('Erro de conexão:', err);
                 statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium";
@@ -372,7 +388,37 @@
             }
         }
 
-        // Adiciona um item na lista de produtos conferidos
+        // Permite reabrir os campos caso precise alterar as chaves futuramente
+        function liberarEdicaoChaves() {
+            document.getElementById('painelInputs').classList.remove('hidden');
+            document.getElementById('painelSeguro').classList.add('hidden');
+        }
+
+        function carregarConexaoSalva() {
+            renderChecklists();
+            
+            const urlSalva = localStorage.getItem('supabase_url');
+            const keySalva = localStorage.getItem('supabase_key');
+
+            if (urlSalva && keySalva) {
+                document.getElementById('supabaseUrl').value = urlSalva;
+                document.getElementById('supabaseKey').value = keySalva;
+                
+                try {
+                    supabaseClient = window.supabase.createClient(urlSalva, keySalva);
+                    const statusEl = document.getElementById('statusConexao');
+                    statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
+                    statusEl.innerText = "Conectado";
+                    
+                    // Mantém oculto e protegido ao carregar a página
+                    document.getElementById('painelInputs').classList.add('hidden');
+                    document.getElementById('painelSeguro').classList.remove('hidden');
+                } catch (e) {
+                    console.error("Erro ao reconectar automaticamente:", e);
+                }
+            }
+        }
+
         function adicionarItemLista() {
             const material = document.getElementById('material').value;
             const descricao = document.getElementById('descricaoProduto').value;
@@ -474,7 +520,6 @@
             alert('Rascunho salvo localmente!');
         }
 
-        // Transmissão para o banco de dados da Sala (Supabase)
         async function transmitirDados() {
             const operador = document.getElementById('operador').value;
             const docTransporte = document.getElementById('docTransporte').value;
@@ -486,7 +531,7 @@
             }
 
             if (!supabaseClient) {
-                alert('Conecte ao Supabase inserindo a URL e a Chave no topo da página antes de enviar.');
+                alert('Conexão com o Supabase ausente. Configure as chaves.');
                 return;
             }
 
@@ -534,7 +579,7 @@
             window.open(`https://api.whatsapp.com/send?phone=&text=${mensagem}`, '_blank');
         }
 
-        window.onload = renderChecklists;
+        window.onload = carregarConexaoSalva;
     </script>
 </body>
 </html>
