@@ -1,18 +1,21 @@
 {
-  "id": "./",
-  "name": "Cargas do Turno",
-  "short_name": "Cargas",
-  "description": "Controle de cargas por turno: status, ocorrências com fotos e relatório",
-  "lang": "pt-BR",
+  "name": "Conferência de Carga Tirol",
+  "short_name": "Tirol Cargas",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0f2f4d",
-  "theme_color": "#1f4e79",
+  "background_color": "#f59e0b",
+  "theme_color": "#1e3a8a",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
