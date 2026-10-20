@@ -10,8 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- SheetJS para exportação em Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Tesseract.js para leitura de texto em imagens (OCR) -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- HTML5 QR Code / Barcode Scanner CDN -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -106,19 +106,21 @@
             </div>
         </section>
 
-        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE (COM LEITURA INTELIGENTE POR FOTO / OCR) -->
+        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE (LEITURA INSTANTÂNEA QR / DATAMATRIX) -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
             
-            <!-- Input de arquivo invisível para tirar foto da etiqueta e extrair o texto -->
-            <input type="file" id="inputFotoEtiqueta" accept="image/*" capture="environment" class="hidden" onchange="processarLeituraEtiquetaPorFoto(event)">
-
-            <button onclick="dispararFotoEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-3 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
-                📷 Fotografar Etiqueta (Extrair Dados Automáticos)
+            <button id="btnIniciarScanner" onclick="iniciarScannerQR()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-3 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
+                📷 Escanear QR Code / DataMatrix da Etiqueta
             </button>
 
-            <div id="statusProcessamento" class="hidden mb-3 p-2 bg-blue-50 text-blue-900 text-center text-xs rounded border border-blue-200 animate-pulse">
-                🔄 Lendo dados da etiqueta e extraindo informações... Aguarde.
+            <!-- ÁREA DE EXIBIÇÃO DO SCANNER DA CÂMERA -->
+            <div id="containerScanner" class="hidden mb-3 p-2 bg-slate-900 rounded-lg text-center text-white">
+                <p class="text-xs mb-2">Aponte a câmera para o <b>QR Code (quadrado)</b> da etiqueta:</p>
+                <div id="leitorCamera" class="w-full max-w-sm mx-auto overflow-hidden rounded"></div>
+                <button onclick="pararScanner()" class="mt-2 bg-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded">
+                    Fechar Câmera
+                </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
@@ -309,6 +311,7 @@
     <!-- SCRIPT PRINCIPAL -->
     <script>
         let supabaseClient = null;
+        let html5QrCode = null;
 
         const itensVeiculo = [
             "1 - Parede / Teto / Assoalhos",
@@ -382,97 +385,97 @@
             `).join('');
         }
 
-        // DISPARA A CÂMERA PARA FOTOGRAFAR A ETIQUETA E FAZER OCR
-        function dispararFotoEtiqueta() {
-            document.getElementById('inputFotoEtiqueta').click();
+        // LEITOR EXCLUSIVO DE QR CODE / DATAMATRIX (INAPAGÁVEL E INSTANTÂNEO)
+        function iniciarScannerQR() {
+            document.getElementById('containerScanner').classList.remove('hidden');
+            
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("leitorCamera");
+            }
+
+            // Configuração restrita a QR_CODE e DATA_MATRIX para ignorar o código de barras da UD
+            const config = { 
+                fps: 20, 
+                qrbox: { width: 250, height: 250 },
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX ]
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanError
+            ).catch(err => {
+                alert("Erro ao abrir a câmera. Verifique as permissões no navegador.");
+                console.error(err);
+                pararScanner();
+            });
         }
 
-        async function processarLeituraEtiquetaPorFoto(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // EXTRATOR INSTANTÂNEO DE DADOS DA ETIQUETA
+        function onScanSuccess(decodedText) {
+            emitirBeep();
+            const raw = decodedText.trim();
 
-            const statusEl = document.getElementById('statusProcessamento');
-            statusEl.classList.remove('hidden');
-
-            try {
-                // Utiliza a biblioteca Tesseract.js para reconhecer o texto da foto da etiqueta
-                const result = await Tesseract.recognize(
-                    file,
-                    'por', // Português
-                    { logger: m => console.log(m) }
-                );
-
-                const textoExtraido = result.data.text;
-                console.log("Texto OCR Extraído:", textoExtraido);
-
-                // Converte a imagem em base64 para também salvar na galeria de fotos do relatório
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    fotosCapturadas.push({ tipo: '🏷️ Foto de Etiqueta / Lote', url: e.target.result, hora: new Date().toLocaleTimeString() });
-                    atualizarGaleriaFotos();
-                };
-                reader.readAsDataURL(file);
-
-                // Função auxiliar para procurar dados no texto lido pelo OCR
-                const extrairCampo = (regex) => {
-                    const match = textoExtraido.match(regex);
-                    return match ? match[1].trim() : '';
-                };
-
-                const formatarData = (dStr) => {
-                    if (!dStr) return '';
-                    const parts = dStr.split(/[\.\/\-]/);
-                    if (parts.length === 3 && parts[2].length === 4) {
-                        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-                    }
-                    return dStr;
-                };
-
-                let mat = extrairCampo(/Material[:\s]*([0-9]+)/i);
-                let lote = extrairCampo(/LOTE[:\s]*([0-9A-Za-z]+)/i);
-                let fab = extrairCampo(/FABRICA[ÇC][ÃA]O[:\s]*([0-9\.\/-]+)/i);
-                let venc = extrairCampo(/VENCIMENTO[:\s]*([0-9\.\/-]+)/i);
-                let qtdUn = extrairCampo(/QTDE\s*UN\s*PALLET[:\s]*([0-9\.,]+)/i);
-                let qtdCx = extrairCampo(/QTDE\s*CX\s*PALLET[:\s]*([0-9\.,]+)/i);
-                let ud = extrairCampo(/UD[:\s]*([0-9]+)/i);
-                let pos = extrairCampo(/(P\d+\s*A\d+\s*C\d+)/i);
-
-                // Preenche os campos automaticamente com o que foi lido na foto da etiqueta
-                if (mat) document.getElementById('material').value = mat;
-                if (lote) document.getElementById('lote').value = lote;
-                if (fab) document.getElementById('fabricacao').value = formatarData(fab);
-                if (venc) document.getElementById('vencimento').value = formatarData(venc);
-                if (qtdCx) document.getElementById('qtdCxPallet').value = qtdCx.replace(',', '.');
-                if (qtdUn) document.getElementById('qtdUnPallet').value = qtdUn.replace(',', '.');
-                if (ud) document.getElementById('udBarras').value = ud;
-                if (pos) document.getElementById('posicaoEndereco').value = pos;
-
-                // Identifica a descrição do produto ou assume pelo padrão da etiqueta da foto
-                if (textoExtraido.toUpperCase().includes("BEBIDA LACTEA") || mat === "1000148") {
-                    document.getElementById('descricaoProduto').value = "BEBIDA LACTEA MORANGO GAR 830 GR";
+            const formatarData = (dStr) => {
+                if (!dStr) return '';
+                const parts = dStr.split(/[\.\/\-]/);
+                if (parts.length === 3 && parts[2].length === 4) {
+                    return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
                 }
+                return dStr;
+            };
 
-                // Se faltou o material por imperfeição da foto, preenche com o modelo padrão para garantir agilidade
-                if (!document.getElementById('material').value) {
-                    document.getElementById('material').value = "1000148";
-                    document.getElementById('descricaoProduto').value = "BEBIDA LACTEA MORANGO GAR 830 GR";
-                    document.getElementById('lote').value = "00931";
-                    document.getElementById('fabricacao').value = "2026-10-13";
-                    document.getElementById('vencimento').value = "2026-11-29";
-                    document.getElementById('qtdUnPallet').value = "840.000";
-                    document.getElementById('qtdCxPallet').value = "70.000";
-                    document.getElementById('udBarras').value = "1009026449";
-                    document.getElementById('posicaoEndereco').value = "P27 A2 C1";
-                }
+            const extrair = (regex) => {
+                const match = raw.match(regex);
+                return match ? match[1].trim() : '';
+            };
 
-                emitirBeep();
-                alert("Foto da etiqueta processada! Dados extraídos e preenchidos automaticamente.");
-            } catch (err) {
-                console.error("Erro no OCR:", err);
-                alert("Não foi possível ler o texto da imagem. Tente tirar a foto com boa iluminação.");
-            } finally {
-                statusEl.classList.add('hidden');
-                event.target.value = '';
+            let mat = extrair(/Material[:\s]*([0-9]+)/i);
+            let desc = extrair(/BEBIDA[^\n\r\|;]*/i);
+            let lote = extrair(/LOTE[:\s]*([0-9A-Za-z]+)/i);
+            let fab = extrair(/FABRICA[ÇC][ÃA]O[:\s]*([0-9\.\/-]+)/i);
+            let venc = extrair(/VENCIMENTO[:\s]*([0-9\.\/-]+)/i);
+            let qtdUn = extrair(/QTDE\s*UN\s*PALLET[:\s]*([0-9\.,]+)/i);
+            let qtdCx = extrair(/QTDE\s*CX\s*PALLET[:\s]*([0-9\.,]+)/i);
+            let ud = extrair(/UD[:\s]*([0-9]+)/i);
+            let pos = extrair(/P\d+\s*A\d+\s*C\d+/i);
+
+            // Se for a string com separadores da Tirol
+            if (!mat && raw.includes(';')) {
+                const partes = raw.split(';');
+                partes.forEach(p => {
+                    if (p.length === 7 && !isNaN(p)) mat = p;
+                    if (p.length === 5 && !isNaN(p)) lote = p;
+                });
+            }
+
+            // Preenchimento instantâneo nos campos
+            if (mat) document.getElementById('material').value = mat;
+            if (desc) document.getElementById('descricaoProduto').value = desc;
+            if (lote) document.getElementById('lote').value = lote;
+            if (fab) document.getElementById('fabricacao').value = formatarData(fab);
+            if (venc) document.getElementById('vencimento').value = formatarData(venc);
+            if (qtdCx) document.getElementById('qtdCxPallet').value = qtdCx.replace(',', '.');
+            if (qtdUn) document.getElementById('qtdUnPallet').value = qtdUn.replace(',', '.');
+            if (ud) document.getElementById('udBarras').value = ud;
+            if (pos) document.getElementById('posicaoEndereco').value = pos;
+
+            alert("QR Code lido instantaneamente!");
+            pararScanner();
+        }
+
+        function onScanError(errorMessage) {
+            // Silencioso
+        }
+
+        function pararScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('containerScanner').classList.add('hidden');
+                }).catch(err => console.error(err));
+            } else {
+                document.getElementById('containerScanner').classList.add('hidden');
             }
         }
 
