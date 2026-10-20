@@ -49,7 +49,7 @@
                 <span id="statusConexao" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Desconectado</span>
             </div>
             
-            <!-- Painel de Inputs (Fica oculto quando conectado) -->
+            <!-- Painel de Inputs -->
             <div id="painelInputs" class="space-y-2 mt-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
@@ -60,7 +60,7 @@
                 </button>
             </div>
 
-            <!-- Painel Seguro (Aparece apenas quando conectado, ocultando as chaves) -->
+            <!-- Painel Seguro -->
             <div id="painelSeguro" class="hidden mt-2 flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700 text-xs">
                 <span class="text-emerald-400 font-medium flex items-center gap-1.5">
                     🔒 Credenciais protegidas e ocultas com segurança
@@ -202,13 +202,13 @@
                 </div>
             </div>
 
-            <!-- Checklist Condições do Veículo (1 a 7) -->
+            <!-- Checklist Condições do Veículo (1 a 7 - SEM PRÉ-SELEÇÃO) -->
             <div class="space-y-3 text-xs mb-4">
                 <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO:</p>
                 <div id="checklistVeiculo"></div>
             </div>
 
-            <!-- Checklist Condições do Carregamento (8 a 16) -->
+            <!-- Checklist Condições do Carregamento (8 a 16 - SEM PRÉ-SELEÇÃO) -->
             <div class="space-y-3 text-xs mb-4">
                 <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO:</p>
                 <div id="checklistCarregamento"></div>
@@ -217,6 +217,7 @@
             <div>
                 <label class="block text-slate-600 font-medium mb-1 text-xs">Avaliação Final do Veículo:</label>
                 <select id="avaliacaoFinal" class="w-full border border-slate-300 rounded p-2 text-xs bg-white">
+                    <option value="">-- Selecione uma opção --</option>
                     <option>Aprovado</option>
                     <option>Reprovado</option>
                     <option>Aprovado com Restrição</option>
@@ -298,7 +299,7 @@
 
     </main>
 
-    <!-- SCRIPT PRINCIPAL E LÓGICA DE SEGURANÇA -->
+    <!-- SCRIPT PRINCIPAL -->
     <script>
         let supabaseClient = null;
 
@@ -328,13 +329,14 @@
         let listaRnc = [];
         let fotosCapturadas = [];
 
+        // Renderiza as opções SEM a propriedade 'checked'
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
             containerV.innerHTML = itensVeiculo.map((item, idx) => `
                 <div class="flex items-center justify-between bg-slate-50 p-2 rounded border mb-1">
                     <span class="text-slate-700 font-medium">${item}</span>
                     <div class="flex gap-2">
-                        <label><input type="radio" name="v_${idx}" value="C" checked> C</label>
+                        <label><input type="radio" name="v_${idx}" value="C"> C</label>
                         <label><input type="radio" name="v_${idx}" value="NC"> NC</label>
                         <label><input type="radio" name="v_${idx}" value="NA"> NA</label>
                     </div>
@@ -346,7 +348,7 @@
                 <div class="flex items-center justify-between bg-slate-50 p-2 rounded border mb-1">
                     <span class="text-slate-700 font-medium">${item}</span>
                     <div class="flex gap-2">
-                        <label><input type="radio" name="c_${idx}" value="C" checked> C</label>
+                        <label><input type="radio" name="c_${idx}" value="C"> C</label>
                         <label><input type="radio" name="c_${idx}" value="NC"> NC</label>
                         <label><input type="radio" name="c_${idx}" value="NA"> NA</label>
                     </div>
@@ -368,14 +370,12 @@
                 supabaseClient = window.supabase.createClient(url, key);
                 const { error } = await supabaseClient.from('conferencia_carga').select('id', { count: 'exact', head: true });
 
-                // Salva de forma segura no navegador
                 localStorage.setItem('supabase_url', url);
                 localStorage.setItem('supabase_key', key);
 
                 statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
                 statusEl.innerText = "Conectado";
                 
-                // Oculta os inputs e exibe a mensagem de segurança
                 document.getElementById('painelInputs').classList.add('hidden');
                 document.getElementById('painelSeguro').classList.remove('hidden');
 
@@ -388,7 +388,6 @@
             }
         }
 
-        // Permite reabrir os campos caso precise alterar as chaves futuramente
         function liberarEdicaoChaves() {
             document.getElementById('painelInputs').classList.remove('hidden');
             document.getElementById('painelSeguro').classList.add('hidden');
@@ -410,7 +409,6 @@
                     statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
                     statusEl.innerText = "Conectado";
                     
-                    // Mantém oculto e protegido ao carregar a página
                     document.getElementById('painelInputs').classList.add('hidden');
                     document.getElementById('painelSeguro').classList.remove('hidden');
                 } catch (e) {
@@ -520,6 +518,7 @@
             alert('Rascunho salvo localmente!');
         }
 
+        // Função de Validação e Transmissão
         async function transmitirDados() {
             const operador = document.getElementById('operador').value;
             const docTransporte = document.getElementById('docTransporte').value;
@@ -535,6 +534,33 @@
                 return;
             }
 
+            // Coleta e validação das respostas dos checklists
+            const respostasVeiculo = {};
+            for (let i = 0; i < itensVeiculo.length; i++) {
+                const checked = document.querySelector(`input[name="v_${i}"]:checked`);
+                if (!checked) {
+                    alert(`Por favor, responda o item do veículo: "${itensVeiculo[i]}"`);
+                    return;
+                }
+                respostasVeiculo[itensVeiculo[i]] = checked.value;
+            }
+
+            const respostasCarregamento = {};
+            for (let i = 0; i < itensCarregamento.length; i++) {
+                const checked = document.querySelector(`input[name="c_${i}"]:checked`);
+                if (!checked) {
+                    alert(`Por favor, responda o item do carregamento: "${itensCarregamento[i]}"`);
+                    return;
+                }
+                respostasCarregamento[itensCarregamento[i]] = checked.value;
+            }
+
+            const avaliacaoFinal = document.getElementById('avaliacaoFinal').value;
+            if (!avaliacaoFinal) {
+                alert('Por favor, selecione a Avaliação Final do Veículo.');
+                return;
+            }
+
             const payload = {
                 operador,
                 doc_transporte: docTransporte,
@@ -542,8 +568,10 @@
                 transportadora: document.getElementById('transportadora').value,
                 turno: document.getElementById('turno').value,
                 itens: itensConferidos,
+                checklist_veiculo: respostasVeiculo,
+                checklist_carregamento: respostasCarregamento,
                 rncs: listaRnc,
-                avaliacao_final: document.getElementById('avaliacaoFinal').value,
+                avaliacao_final: avaliacaoFinal,
                 criado_em: new Date().toISOString()
             };
 
@@ -557,7 +585,7 @@
                 alert('Dados transmitidos com sucesso para a sala!');
             } catch (err) {
                 console.error('Erro de transmissão:', err);
-                alert('Erro ao enviar dados. Verifique a tabela "conferencia_carga" no Supabase.');
+                alert('Erro ao enviar dados. Verifique se a tabela "conferencia_carga" existe no Supabase.');
             }
         }
 
