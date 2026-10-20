@@ -1,39 +1,135 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conferência Carga - Expedição & Qualidade</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Conferência Carga">
+    <title>Conferência Carga & Expedição PWA</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client CDN -->
+    <!-- Supabase Client JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS para exportação em Excel -->
+    <!-- SheetJS (XLSX Export) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- HTML5 QR Code / Barcode Scanner CDN -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- HTML5 QR Code / Barcode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        #html5-qrcode-anchor-scan-type-change { display: none !important; }
+        #leitorCamera video { border-radius: 0.5rem; object-fit: cover; }
+
+        /* Estilos da Splash Screen Tirol */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            background-color: #d3122a;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+
+        #splashScreen.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .splash-logo-container {
+            animation: splashPop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes splashPop {
+            0% {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 pb-12">
+<body class="bg-slate-100 text-slate-800 pb-20 select-none">
 
-    <!-- HEADER SUPERIOR -->
-    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-amber-500 p-2 rounded-lg text-2xl shadow">🥛</div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">Conferência Carga</h1>
-                    <p class="text-xs text-blue-200">Expedição & Qualidade</p>
+    <!-- SPLASH SCREEN / TELA DE ABERTURA TIROL -->
+    <div id="splashScreen">
+        <!-- SVG / Imagem da Logo Tirol com Fundo e Elementos de Laticínios -->
+        <div class="splash-logo-container text-center px-6 max-w-sm">
+            <div class="relative w-64 h-64 mx-auto flex items-center justify-center">
+                <!-- Ilustração Vetorial da Borda de Laticínios Tirol -->
+                <svg class="absolute inset-0 w-full h-full text-white/30" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Garrafa / Leiteiro -->
+                    <path d="M 20 30 L 30 30 L 30 45 L 20 45 Z M 20 45 C 15 50, 15 65, 20 70 L 30 70 C 35 65, 35 50, 30 45" />
+                    <!-- Vaca estilizada (cabeça) -->
+                    <path d="M 160 25 L 180 25 L 170 40 Z M 165 40 Q 170 50 175 40 M 162 33 A 2 2 0 1 1 162 32 M 178 33 A 2 2 0 1 1 178 32" />
+                    <!-- Queijo -->
+                    <path d="M 160 150 L 185 140 L 185 160 L 160 170 Z M 160 150 L 175 130 L 185 140 M 170 152 A 2 2 0 1 1 170 151" />
+                    <!-- Sorvete / Picolé -->
+                    <path d="M 25 140 A 10 10 0 0 1 45 140 L 45 160 L 25 160 Z M 35 160 L 35 175" />
+                    <!-- Caixa de Leite -->
+                    <path d="M 95 15 L 105 10 L 115 15 L 115 35 L 95 35 Z M 95 22 L 115 22" />
+                    <!-- Moinho / Campo -->
+                    <path d="M 170 85 L 180 105 L 160 105 Z M 170 85 L 170 75 M 162 80 L 178 90 M 178 80 L 162 90" />
+                    <!-- Gotas de Leite espalhadas -->
+                    <path d="M 50 20 Q 50 15 52 10 Q 54 15 54 20 A 2 2 0 0 1 50 20 Z" />
+                    <path d="M 140 20 Q 140 15 142 10 Q 144 15 144 20 A 2 2 0 0 1 140 20 Z" />
+                    <path d="M 15 100 Q 15 95 17 90 Q 19 95 19 100 A 2 2 0 0 1 15 100 Z" />
+                    <path d="M 185 115 Q 185 110 187 105 Q 189 110 189 115 A 2 2 0 0 1 185 115 Z" />
+                    <path d="M 70 180 Q 70 175 72 170 Q 74 175 74 180 A 2 2 0 0 1 70 180 Z" />
+                    <path d="M 130 180 Q 130 175 132 170 Q 134 175 134 180 A 2 2 0 0 1 130 180 Z" />
+                </svg>
+
+                <!-- Logo Central TIROL em Tipografia Fiel -->
+                <div class="relative z-10">
+                    <span class="text-white font-extrabold text-6xl tracking-tight select-none font-serif drop-shadow-md" style="font-family: 'Inter', Georgia, serif; font-style: italic;">
+                        Tirol
+                    </span>
+                    <p class="text-amber-200 text-[11px] font-semibold tracking-widest uppercase mt-1">Conferência & Expedição</p>
                 </div>
             </div>
+            
+            <div class="mt-4 flex justify-center">
+                <div class="w-8 h-1 bg-white/40 rounded-full overflow-hidden">
+                    <div class="w-full h-full bg-white animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER PWA -->
+    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40 border-b border-blue-800">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-600 p-2 rounded-xl text-white font-bold text-lg shadow-inner flex items-center justify-center w-10 h-10 italic font-serif">
+                    T
+                </div>
+                <div>
+                    <h1 class="font-bold text-base md:text-lg leading-tight flex items-center gap-2">
+                        Conferência Carga
+                        <span id="badgeOnline" class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" title="Status Online"></span>
+                    </h1>
+                    <p class="text-[11px] text-blue-200">Laticínios Tirol • Expedição PWA</p>
+                </div>
+            </div>
+
             <div class="flex items-center space-x-2">
-                <button onclick="transmitirDados()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 shadow transition">
-                    ⚡ Enviar p/ Sala
+                <!-- Botão de Instalação PWA (Exibido se suportado/pendente) -->
+                <button id="btnInstalarPwa" onclick="instalarPwa()" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow transition">
+                    📲 Instalar App
                 </button>
-                <button onclick="salvarRascunho()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 shadow transition">
+                <button onclick="salvarRascunho()" class="bg-blue-800 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow transition">
                     💾 Salvar
                 </button>
             </div>
@@ -42,61 +138,77 @@
 
     <main class="max-w-4xl mx-auto px-4 mt-4 space-y-4">
 
-        <!-- SUPABASE CONFIG -->
-        <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
-            <div class="flex justify-between items-center mb-2">
+        <!-- ALERTA DE INSTALAÇÃO PWA BANNER -->
+        <div id="bannerInstalacao" class="hidden bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-3.5 rounded-xl shadow-md flex items-center justify-between border border-blue-700">
+            <div class="flex items-center space-x-3">
+                <div class="text-2xl">📱</div>
+                <div>
+                    <p class="text-xs font-bold">Instalar Aplicativo de Conferência</p>
+                    <p class="text-[10px] text-blue-200">Acesse offline e direto da tela inicial do seu celular.</p>
+                </div>
+            </div>
+            <button onclick="instalarPwa()" class="bg-amber-500 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs shadow hover:bg-amber-400 transition whitespace-nowrap">
+                Instalar
+            </button>
+        </div>
+
+        <!-- 0. SUPABASE CONFIG E CONEXÃO -->
+        <section class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
+            <div class="flex justify-between items-center">
                 <span class="text-xs font-semibold flex items-center gap-1.5 text-slate-300">
                     ⚙️ Conexão em Tempo Real (Supabase)
                 </span>
-                <span id="statusConexao" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">Desconectado</span>
+                <span id="statusConexao" class="text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30">
+                    Desconectado
+                </span>
             </div>
             
-            <div id="painelInputs" class="space-y-2 mt-2">
+            <div id="painelInputs" class="space-y-2 mt-3">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <input type="text" id="supabaseUrl" placeholder="URL do Supabase" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
-                    <input type="password" id="supabaseKey" placeholder="Chave Anon Public" class="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
+                    <input type="text" id="supabaseUrl" placeholder="URL do Supabase (https://xyz.supabase.co)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full">
+                    <input type="password" id="supabaseKey" placeholder="Chave Anon Public Key" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full">
                 </div>
-                <button onclick="conectarSupabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 rounded transition">
+                <button onclick="conectarSupabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition shadow">
                     Conectar & Salvar Credenciais
                 </button>
             </div>
 
-            <div id="painelSeguro" class="hidden mt-2 flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700 text-xs">
+            <div id="painelSeguro" class="hidden mt-3 flex items-center justify-between bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-xs">
                 <span class="text-emerald-400 font-medium flex items-center gap-1.5">
-                    🔒 Conectado e credenciais ocultas com segurança
+                    🔒 Credenciais seguras e conectadas
                 </span>
-                <button onclick="desconectarSupabase()" class="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded text-[11px] font-medium transition">
+                <button onclick="desconectarSupabase()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-[11px] font-semibold transition">
                     Desconectar / Trocar
                 </button>
             </div>
-        </div>
+        </section>
 
         <!-- 1. DADOS DA CARGA / VEÍCULO -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🚚 1. Dados da Carga / Veículo</h2>
             <div class="grid grid-cols-1 gap-3 text-xs">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Operador / Conferente:</label>
-                    <input type="text" id="operador" placeholder="Seu nome" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-slate-600 font-medium mb-1">Operador / Conferente *</label>
+                    <input type="text" id="operador" placeholder="Nome completo do conferente" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Doc. Transporte (DT):</label>
-                        <input type="text" id="docTransporte" placeholder="Ex: 300000290" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-slate-600 font-medium mb-1">Doc. Transporte (DT) *</label>
+                        <input type="text" id="docTransporte" placeholder="Ex: 300000290" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Placa Veículo:</label>
-                        <input type="text" id="placaVeiculo" placeholder="ABC-1234" class="w-full border border-slate-300 rounded p-2 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-slate-600 font-medium mb-1">Placa Veículo *</label>
+                        <input type="text" id="placaVeiculo" placeholder="ABC-1234" class="w-full border border-slate-300 rounded-lg p-2.5 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Transportadora:</label>
-                        <input type="text" id="transportadora" placeholder="Nome da empresa" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <label class="block text-slate-600 font-medium mb-1">Transportadora</label>
+                        <input type="text" id="transportadora" placeholder="Nome da transportadora" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Turno:</label>
-                        <select id="turno" class="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <label class="block text-slate-600 font-medium mb-1">Turno</label>
+                        <select id="turno" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                             <option>1º Turno</option>
                             <option>2º Turno</option>
                             <option>3º Turno</option>
@@ -106,79 +218,89 @@
             </div>
         </section>
 
-        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE (COM SCANNER REAL) -->
+        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE COM SCANNER DE CÂMERA INTEGRADO -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Leitura de Etiqueta & Itens</h2>
             
-            <button id="btnIniciarScanner" onclick="iniciarScannerEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
-                📷 Abrir Scanner de Etiqueta (Câmera)
-            </button>
-
-            <!-- ÁREA DE EXIBIÇÃO DO SCANNER DA CÂMERA -->
-            <div id="containerScanner" class="hidden mb-3 p-2 bg-slate-900 rounded-lg text-center text-white">
-                <p class="text-xs mb-2">Aponte a câmera para o código de barras ou QR Code da etiqueta:</p>
-                <div id="leitorCamera" class="w-full max-w-sm mx-auto overflow-hidden rounded"></div>
-                <button onclick="pararScanner()" class="mt-2 bg-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded">
-                    Fechar Scanner
+            <div class="flex gap-2 mb-3">
+                <button id="btnAbrirScanner" onclick="iniciarScannerEtiqueta()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-3 rounded-xl flex items-center justify-center gap-2 shadow transition">
+                    📷 Abrir Scanner de Código (Câmera)
                 </button>
             </div>
 
+            <!-- PAINEL SCANNER AO VIVO -->
+            <div id="containerScanner" class="hidden mb-4 p-3 bg-slate-900 rounded-xl text-center text-white border border-slate-700">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="text-xs font-semibold text-emerald-400">Scanner Ativo</span>
+                    <button onclick="pararScanner()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-md">
+                        ✕ Fechar
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-300 mb-2">Centralize o código de barras ou QR Code na área marcada:</p>
+                <div id="leitorCamera" class="w-full max-w-xs mx-auto overflow-hidden rounded-lg bg-black min-h-[200px]"></div>
+            </div>
+
+            <!-- FORMULÁRIO DE ITEM -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Material</label>
-                    <input type="text" id="material" placeholder="Ex: 1002161" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                    <label class="block text-slate-600 font-medium mb-1">Cód. Material / SKU *</label>
+                    <input type="text" id="material" placeholder="Ex: 1002161" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 font-mono">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Descrição do Produto</label>
-                    <input type="text" id="descricaoProduto" placeholder="Ex: REQUEIJAO CULINARIO 1,01KG" class="w-full border border-slate-300 rounded p-2 bg-slate-50">
+                    <input type="text" id="descricaoProduto" placeholder="Ex: REQUEIJAO CULINARIO 1,01KG" class="w-full border border-slate-300 rounded-lg p-2.5">
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2 text-xs mb-3">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Lote</label>
-                    <input type="text" id="lote" placeholder="Lote" class="w-full border border-slate-300 rounded p-2">
+                    <label class="block text-slate-600 font-medium mb-1">Lote *</label>
+                    <input type="text" id="lote" placeholder="Lote" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Fabricação</label>
-                    <input type="date" id="fabricacao" class="w-full border border-slate-300 rounded p-2">
+                    <input type="date" id="fabricacao" class="w-full border border-slate-300 rounded-lg p-2">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Vencimento</label>
-                    <input type="date" id="vencimento" class="w-full border border-slate-300 rounded p-2">
+                    <input type="date" id="vencimento" class="w-full border border-slate-300 rounded-lg p-2">
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 text-xs bg-blue-50 p-2.5 rounded-lg border border-blue-100 mb-3">
+            <div class="grid grid-cols-2 gap-2 text-xs bg-blue-50/80 p-3 rounded-xl border border-blue-100 mb-3">
                 <div>
-                    <label class="block text-blue-900 font-medium mb-1">QTDE CX PALLET</label>
-                    <input type="number" step="0.001" id="qtdCxPallet" placeholder="0.000" class="w-full border border-blue-200 rounded p-1.5 bg-white">
+                    <label class="block text-blue-900 font-semibold mb-1">QTDE CAIXAS PALLET</label>
+                    <input type="number" step="0.001" id="qtdCxPallet" placeholder="0.000" class="w-full border border-blue-200 rounded-lg p-2 bg-white text-sm font-semibold">
                 </div>
                 <div>
-                    <label class="block text-blue-900 font-medium mb-1">QTDE UN PALLET</label>
-                    <input type="number" step="0.001" id="qtdUnPallet" placeholder="0.000" class="w-full border border-blue-200 rounded p-1.5 bg-white">
+                    <label class="block text-blue-900 font-semibold mb-1">QTDE UNIDADES PALLET</label>
+                    <input type="number" step="0.001" id="qtdUnPallet" placeholder="0.000" class="w-full border border-blue-200 rounded-lg p-2 bg-white text-sm font-semibold">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 text-xs mb-3">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">UD (Cód. Barras)</label>
-                    <input type="text" id="udBarras" placeholder="Cód Barras UD" class="w-full border border-slate-300 rounded p-2">
+                    <label class="block text-slate-600 font-medium mb-1">UD (Cód. Barras Lido)</label>
+                    <input type="text" id="udBarras" placeholder="Leitura automática" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono bg-slate-50">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Posição / Endereço</label>
-                    <input type="text" id="posicaoEndereco" placeholder="Ex: P11 C3" class="w-full border border-slate-300 rounded p-2 bg-amber-50">
+                    <input type="text" id="posicaoEndereco" placeholder="Ex: P11 C3" class="w-full border border-slate-300 rounded-lg p-2.5 bg-amber-50">
                 </div>
             </div>
 
-            <button onclick="adicionarItemLista()" class="w-full bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold py-2 rounded transition shadow">
-                + Confirmar e Inserir Item
+            <button onclick="adicionarItemLista()" class="w-full bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold py-2.5 rounded-lg transition shadow">
+                + Adicionar Item à Lista
             </button>
 
-            <div class="mt-4 border-t pt-3">
-                <h3 class="text-xs font-bold text-slate-700 mb-2">ITENS CONFERIDOS NA CARGA:</h3>
-                <div id="listaItensContainer" class="space-y-2 max-h-48 overflow-y-auto text-xs">
-                    <p class="text-slate-400 italic text-center py-2">Nenhum item adicionado ainda.</p>
+            <!-- LISTA DE ITENS LIDOS -->
+            <div class="mt-4 border-t border-slate-200 pt-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-slate-700">ITENS NA CARGA:</h3>
+                    <span id="contadorItens" class="text-[11px] font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded-full">0 itens</span>
+                </div>
+                <div id="listaItensContainer" class="space-y-2 max-h-52 overflow-y-auto text-xs pr-1">
+                    <p class="text-slate-400 italic text-center py-4">Nenhum item adicionado ainda.</p>
                 </div>
             </div>
         </section>
@@ -187,79 +309,82 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📋 3. Inspeção do Veículo & Carregamento</h2>
 
-            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 text-xs">
+            <!-- TEMPERATURAS -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 text-xs">
                 <p class="font-bold text-slate-700 mb-2">TEMPERATURAS DO PRODUTO (°C) <span class="text-red-500 font-normal">(Máx 7,0°C)</span>:</p>
                 <div class="grid grid-cols-3 gap-2 mb-2">
                     <div>
                         <label class="block text-slate-600 mb-1">Início</label>
-                        <input type="number" step="0.1" id="tempInicio" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                        <input type="number" step="0.1" id="tempInicio" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
                     </div>
                     <div>
                         <label class="block text-slate-600 mb-1">Meio</label>
-                        <input type="number" step="0.1" id="tempMeio" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                        <input type="number" step="0.1" id="tempMeio" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
                     </div>
                     <div>
                         <label class="block text-slate-600 mb-1">Fim</label>
-                        <input type="number" step="0.1" id="tempFim" placeholder="°C" class="w-full border rounded p-1.5 bg-white">
+                        <input type="number" step="0.1" id="tempFim" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-slate-600 mb-1">Temp. do Veículo (°C):</label>
-                    <input type="text" id="tempVeiculo" placeholder="Ex: 4°C" class="w-full border rounded p-1.5 bg-white">
+                    <label class="block text-slate-600 mb-1">Temp. Baú / Veículo (°C):</label>
+                    <input type="text" id="tempVeiculo" placeholder="Ex: 4°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
                 </div>
             </div>
 
-            <div class="space-y-3 text-xs mb-4">
-                <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO:</p>
+            <!-- CHECKLIST VEÍCULO -->
+            <div class="space-y-2 text-xs mb-4">
+                <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO *</p>
                 <div id="checklistVeiculo"></div>
             </div>
 
-            <div class="space-y-3 text-xs mb-4">
-                <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO:</p>
+            <!-- CHECKLIST CARREGAMENTO -->
+            <div class="space-y-2 text-xs mb-4">
+                <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO *</p>
                 <div id="checklistCarregamento"></div>
             </div>
 
             <div>
-                <label class="block text-slate-600 font-medium mb-1 text-xs">Avaliação Final do Veículo:</label>
-                <select id="avaliacaoFinal" class="w-full border border-slate-300 rounded p-2 text-xs bg-white">
-                    <option value="">-- Selecione uma opção --</option>
-                    <option>Aprovado</option>
-                    <option>Reprovado</option>
-                    <option>Aprovado com Restrição</option>
+                <label class="block text-slate-700 font-bold mb-1 text-xs">Avaliação Final da Carga *</label>
+                <select id="avaliacaoFinal" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white font-semibold">
+                    <option value="">-- Selecione o Status Final --</option>
+                    <option value="Aprovado">✅ Aprovado</option>
+                    <option value="Reprovado">❌ Reprovado</option>
+                    <option value="Aprovado com Restrição">⚠️ Aprovado com Restrição</option>
                 </select>
             </div>
         </section>
 
         <!-- 4. REGISTRO DE NÃO CONFORMIDADES (RNC) -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-amber-800 mb-3 flex items-center gap-2">⚠️ 4. Registro de Não Conformidades (RNC)</h2>
+            <h2 class="font-bold text-sm text-amber-800 mb-3 flex items-center gap-2">⚠️ 4. Registro de Ocorrências / RNC</h2>
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Descrição da Não Conformidade:</label>
-                    <input type="text" id="descRnc" placeholder="Ex: Palete com cantoneira amassada" class="w-full border border-slate-300 rounded p-2">
+                    <label class="block text-slate-600 font-medium mb-1">Descrição do Problema</label>
+                    <input type="text" id="descRnc" placeholder="Ex: Cantoneira do palete rasgada" class="w-full border border-slate-300 rounded-lg p-2.5">
                 </div>
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Ação Corretiva / Atalhos Rápidos:</label>
-                    <select id="atalhoRnc" onchange="preencherAcaoCorretiva()" class="w-full border border-slate-300 rounded p-2 bg-white mb-1">
-                        <option value="">-- Selecione uma correção predefinida --</option>
+                    <label class="block text-slate-600 font-medium mb-1">Atalho de Ação Corretiva</label>
+                    <select id="atalhoRnc" onchange="preencherAcaoCorretiva()" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white mb-1.5">
+                        <option value="">-- Selecione para preencher --</option>
                         <option value="Substituído o palete avariado antes do carregamento.">Substituir palete avariado</option>
                         <option value="Higienizada a área da carroceria apontada.">Higienizar carroceria</option>
                         <option value="Ajustado equipamento de refrigeração do veículo.">Ajustar refrigeração</option>
                     </select>
-                    <input type="text" id="acaoCorretiva" placeholder="Ou digite a correção realizada" class="w-full border border-slate-300 rounded p-2">
+                    <input type="text" id="acaoCorretiva" placeholder="Ou digite a correção efetuada" class="w-full border border-slate-300 rounded-lg p-2.5">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Nº RNC (se houver):</label>
-                        <input type="text" id="numRnc" placeholder="Ex: RNC-001" class="w-full border border-slate-300 rounded p-2">
+                        <label class="block text-slate-600 font-medium mb-1">Nº RNC (se houver)</label>
+                        <input type="text" id="numRnc" placeholder="Ex: RNC-001" class="w-full border border-slate-300 rounded-lg p-2.5">
                     </div>
                     <div>
-                        <label class="block text-slate-600 font-medium mb-1">Responsável:</label>
-                        <input type="text" id="responsavelRnc" placeholder="Nome" class="w-full border border-slate-300 rounded p-2">
+                        <label class="block text-slate-600 font-medium mb-1">Responsável</label>
+                        <input type="text" id="responsavelRnc" placeholder="Nome" class="w-full border border-slate-300 rounded-lg p-2.5">
                     </div>
                 </div>
-                <button onclick="registrarRnc()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 rounded transition shadow">
-                    + Registrar Ocorrência / RNC
+                <button onclick="registrarRnc()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg transition shadow">
+                    + Adicionar RNC ao Relatório
                 </button>
                 <div id="listaRncContainer" class="mt-2 text-slate-500 italic">
                     Nenhuma RNC registrada.
@@ -267,13 +392,13 @@
             </div>
         </section>
 
-        <!-- 5. GALERIA DE FOTOS (FOTOS REAIS) -->
+        <!-- 5. CÂMERA NATIVA & GALERIA DE FOTOS -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Galeria de Fotos dos Paletes & Etiquetas</h2>
+            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Registros Fotográficos</h2>
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-slate-600 font-medium mb-1">Selecione o Tipo de Foto:</label>
-                    <select id="tipoFoto" class="w-full border border-slate-300 rounded p-2 bg-white">
+                    <label class="block text-slate-600 font-medium mb-1">Categoria da Foto:</label>
+                    <select id="tipoFoto" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white font-medium">
                         <option>📦 Foto de Palete Inteiro / Stretch</option>
                         <option>🏷️ Foto de Etiqueta / Lote</option>
                         <option>🌡️ Foto do Termômetro / Leitura</option>
@@ -281,117 +406,204 @@
                     </select>
                 </div>
                 
-                <input type="file" id="inputCameraReal" accept="image/*" capture="environment" class="hidden" onchange="processarFotoCapturada(event)">
+                <input type="file" id="inputCameraNativa" accept="image/*" capture="environment" class="hidden" onchange="processarFotoCapturada(event)">
 
-                <button onclick="acionarCameraReal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded flex items-center justify-center gap-2 shadow transition">
-                    📷 Abrir Câmera e Tirar Foto
+                <button onclick="acionarCameraNativa()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow transition">
+                    📷 Tirar Foto com a Câmera
                 </button>
 
-                <div id="galeriaFotos" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                <div id="galeriaFotos" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-3">
                     <!-- Fotos tiradas aparecem aqui -->
                 </div>
             </div>
         </section>
 
-        <!-- BOTÕES DE AÇÃO E TRANSMISSÃO -->
-        <div class="space-y-2 pt-2">
-            <button onclick="transmitirDados()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+        <!-- AÇÕES E TRANSMISSÃO -->
+        <div class="space-y-2.5 pt-2">
+            <button onclick="transmitirDados()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.99]">
                 ⚡ Transmitir para a Sala em Tempo Real
             </button>
-            <button onclick="exportarExcel()" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+            <button onclick="exportarExcel()" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
                 📊 Exportar Relatório para Excel (.xlsx)
             </button>
-            <button onclick="compartilharWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
-                💬 Compartilhar Relatório no WhatsApp
+            <button onclick="compartilharWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
+                💬 Compartilhar Resumo no WhatsApp
             </button>
         </div>
 
     </main>
 
-    <!-- SCRIPT PRINCIPAL -->
+    <!-- SCRIPT PWA & LÓGICA DE APLICAÇÃO -->
     <script>
+        /* =======================================================
+           1. REGISTRO PWA & SERVICE WORKER (EMBEDDED BLOB)
+           ======================================================= */
+        let deferredPrompt = null;
+
+        // Gerar e Registrar Manifest dinamicamente
+        const manifestData = {
+            name: "Conferência Cargas & Expedição",
+            short_name: "Conferência",
+            description: "App de Conferência de Cargas, Leitura de Etiquetas e Inspeção",
+            start_url: "./",
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#1e3a8a",
+            icons: [
+                {
+                    src: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
+                    sizes: "192x192",
+                    type: "image/png"
+                },
+                {
+                    src: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
+                    sizes: "512x512",
+                    type: "image/png"
+                }
+            ]
+        };
+
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+
+        // Registrar Service Worker via Blob para offline básico
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'conf-cargas-v1';
+                self.addEventListener('install', (e) => {
+                    self.skipWaiting();
+                });
+                self.addEventListener('activate', (e) => {
+                    e.waitUntil(clients.claim());
+                });
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+
+            navigator.serviceWorker.register(swUrl)
+                .then(() => console.log('Service Worker PWA Registrado com Sucesso'))
+                .catch(err => console.log('Falha ao registrar Service Worker:', err));
+        }
+
+        // Captura do Evento de Instalação PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('btnInstalarPwa').classList.remove('hidden');
+            document.getElementById('bannerInstalacao').classList.remove('hidden');
+        });
+
+        function instalarPwa() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou a instalação do PWA');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('btnInstalarPwa').classList.add('hidden');
+                    document.getElementById('bannerInstalacao').classList.add('hidden');
+                });
+            }
+        }
+
+        /* =======================================================
+           2. ESTADO DA APLICAÇÃO E VARIÁVEIS GLOBAIS
+           ======================================================= */
         let supabaseClient = null;
         let html5QrCode = null;
 
         const itensVeiculo = [
-            "1 - Parede / Teto / Assoalhos",
-            "2 - Temperatura adequada",
-            "3 - Presença de cheiro estranho",
-            "4 - Câmeras e compressores ok",
-            "5 - Limpeza da carroceria",
-            "6 - Resíduos de lubrificantes/graxas",
-            "7 - Presença/evidência de pragas"
+            "1 - Parede / Teto / Assoalhos em bom estado",
+            "2 - Temperatura adequada da câmara",
+            "3 - Ausência de odores estranhos",
+            "4 - Câmeras e compressores operacionais",
+            "5 - Higiene e limpeza interna do baú",
+            "6 - Isento de graxas e óleos",
+            "7 - Sem vestígios de pragas/insetos"
         ];
 
         const itensCarregamento = [
-            "8 - Paletes/produtos sem avarias",
-            "9 - Paletes estrechados adequadamente",
-            "10 - Stretch limpo, livre de pragas",
-            "11 - Produtos bem acondicionados",
-            "12 - Colocada trava paletes/isopainel",
-            "13 - Foram feitas fotos da carga lacrada",
-            "14 - Lote conforme especificação",
-            "15 - Laudo entregue ao transportador",
-            "16 - Lotes impressos condizem c/ laudo"
+            "8 - Paletes e caixas sem avarias",
+            "9 - Filme stretch aplicado corretamente",
+            "10 - Stretch íntegro e limpo",
+            "11 - Produtos dispostos com estabilidade",
+            "12 - Trava-paletes/Isopainel posicionado",
+            "13 - Registro fotográfico concluído",
+            "14 - Lote em conformidade com o pedido",
+            "15 - Laudo de qualidade acompanhando carga",
+            "16 - Lotes físicos conferem com laudo"
         ];
 
         let itensConferidos = [];
         let listaRnc = [];
         let fotosCapturadas = [];
 
+        /* =======================================================
+           3. INICIALIZAÇÃO E CHECKLISTS
+           ======================================================= */
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
             containerV.innerHTML = itensVeiculo.map((item, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 p-2 rounded border mb-1">
-                    <span class="text-slate-700 font-medium">${item}</span>
-                    <div class="flex gap-2">
-                        <label><input type="radio" name="v_${idx}" value="C"> C</label>
-                        <label><input type="radio" name="v_${idx}" value="NC"> NC</label>
-                        <label><input type="radio" name="v_${idx}" value="NA"> NA</label>
+                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <span class="text-slate-700 font-medium pr-2">${item}</span>
+                    <div class="flex gap-2 font-semibold">
+                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="C" class="accent-emerald-600"> C</label>
+                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="NC" class="accent-red-600"> NC</label>
+                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="NA" class="accent-slate-500"> NA</label>
                     </div>
                 </div>
             `).join('');
 
             const containerC = document.getElementById('checklistCarregamento');
             containerC.innerHTML = itensCarregamento.map((item, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 p-2 rounded border mb-1">
-                    <span class="text-slate-700 font-medium">${item}</span>
-                    <div class="flex gap-2">
-                        <label><input type="radio" name="c_${idx}" value="C"> C</label>
-                        <label><input type="radio" name="c_${idx}" value="NC"> NC</label>
-                        <label><input type="radio" name="c_${idx}" value="NA"> NA</label>
+                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+                    <span class="text-slate-700 font-medium pr-2">${item}</span>
+                    <div class="flex gap-2 font-semibold">
+                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="C" class="accent-emerald-600"> C</label>
+                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="NC" class="accent-red-600"> NC</label>
+                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="NA" class="accent-slate-500"> NA</label>
                     </div>
                 </div>
             `).join('');
         }
 
-        // LÓGICA DO SCANNER DE CÓDIGO DE BARRAS / ETIQUETA REAL
+        /* =======================================================
+           4. SCANNER DE CÓDIGO DE BARRAS / QR CODE (Html5Qrcode)
+           ======================================================= */
         function iniciarScannerEtiqueta() {
-            document.getElementById('containerScanner').classList.remove('hidden');
-            
+            const container = document.getElementById('containerScanner');
+            container.classList.remove('hidden');
+
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("leitorCamera");
             }
 
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            const config = { fps: 10, qrbox: { width: 250, height: 160 } };
 
             html5QrCode.start(
-                { facingMode: "environment" }, // Usa a câmera traseira do celular
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 onScanError
             ).catch(err => {
-                alert("Erro ao abrir a câmera para leitura. Verifique as permissões do navegador.");
+                alert("Erro ao acessar a câmera para o scanner. Permita o acesso à câmera no navegador.");
                 console.error(err);
                 pararScanner();
             });
         }
 
         function onScanSuccess(decodedText) {
-            // Quando a câmera lê o código da etiqueta com sucesso:
             document.getElementById('udBarras').value = decodedText;
             
-            // Tenta identificar se o código lido é o código do produto ou UD
+            // Auto-preenche material se estiver em branco
             if (!document.getElementById('material').value) {
                 document.getElementById('material').value = decodedText;
             }
@@ -401,7 +613,7 @@
         }
 
         function onScanError(errorMessage) {
-            // Ignora erros de busca até focar no código
+            // Varredura contínua
         }
 
         function pararScanner() {
@@ -414,35 +626,40 @@
             }
         }
 
+        /* =======================================================
+           5. INTEGRAÇÃO COM SUPABASE
+           ======================================================= */
         async function conectarSupabase() {
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
             const statusEl = document.getElementById('statusConexao');
 
             if (!url || !key) {
-                alert('Por favor, insira a URL e a Chave Anon Public do Supabase.');
+                alert('Preencha a URL e a Chave Anon do Supabase.');
                 return;
             }
 
             try {
                 supabaseClient = window.supabase.createClient(url, key);
-                const { error } = await supabaseClient.from('conferencia_carga').select('id', { count: 'exact', head: true });
+                
+                // Teste rápido de consulta
+                await supabaseClient.from('conferencia_carga').select('id', { count: 'exact', head: true });
 
                 localStorage.setItem('supabase_url', url);
                 localStorage.setItem('supabase_key', key);
 
-                statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
+                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30";
                 statusEl.innerText = "Conectado";
-                
+
                 document.getElementById('painelInputs').classList.add('hidden');
                 document.getElementById('painelSeguro').classList.remove('hidden');
 
-                alert('Conexão estabelecida e salva com sucesso!');
+                alert('Supabase conectado e salvo com sucesso!');
             } catch (err) {
-                console.error('Erro de conexão:', err);
-                statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium";
+                console.error('Erro ao conectar ao Supabase:', err);
+                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30";
                 statusEl.innerText = "Erro na Conexão";
-                alert('Falha ao conectar ao Supabase. Verifique se a URL e a chave estão corretas.');
+                alert('Não foi possível conectar ao Supabase. Verifique suas credenciais e a tabela "conferencia_carga".');
             }
         }
 
@@ -455,57 +672,80 @@
             document.getElementById('supabaseKey').value = '';
 
             const statusEl = document.getElementById('statusConexao');
-            statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium";
+            statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30";
             statusEl.innerText = "Desconectado";
 
             document.getElementById('painelInputs').classList.remove('hidden');
             document.getElementById('painelSeguro').classList.add('hidden');
 
-            alert('Desconectado com sucesso.');
+            alert('Credenciais do Supabase removidas.');
         }
 
         function carregarConexaoSalva() {
             renderChecklists();
-            
+
             const urlSalva = localStorage.getItem('supabase_url');
             const keySalva = localStorage.getItem('supabase_key');
 
             if (urlSalva && keySalva) {
                 document.getElementById('supabaseUrl').value = urlSalva;
                 document.getElementById('supabaseKey').value = keySalva;
-                
+
                 try {
                     supabaseClient = window.supabase.createClient(urlSalva, keySalva);
                     const statusEl = document.getElementById('statusConexao');
-                    statusEl.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium";
+                    statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30";
                     statusEl.innerText = "Conectado";
-                    
+
                     document.getElementById('painelInputs').classList.add('hidden');
                     document.getElementById('painelSeguro').classList.remove('hidden');
                 } catch (e) {
-                    console.error("Erro ao reconectar automaticamente:", e);
+                    console.error("Falha ao reconectar:", e);
+                }
+            }
+
+            // Restaurar rascunho local se houver
+            const rascunho = localStorage.getItem('rascunho_conferencia');
+            if (rascunho) {
+                try {
+                    const data = JSON.parse(rascunho);
+                    if (data.operador) document.getElementById('operador').value = data.operador;
+                    if (data.docTransporte) document.getElementById('docTransporte').value = data.docTransporte;
+                    if (data.placaVeiculo) document.getElementById('placaVeiculo').value = data.placaVeiculo;
+                    if (data.transportadora) document.getElementById('transportadora').value = data.transportadora;
+                    if (data.itens) {
+                        itensConferidos = data.itens;
+                        atualizarListaItens();
+                    }
+                } catch (err) {
+                    console.error("Erro ao ler rascunho", err);
                 }
             }
         }
 
+        /* =======================================================
+           6. GERENCIAMENTO DE ITENS & RNC
+           ======================================================= */
         function adicionarItemLista() {
-            const material = document.getElementById('material').value;
-            const descricao = document.getElementById('descricaoProduto').value;
-            const lote = document.getElementById('lote').value;
-            const validade = document.getElementById('vencimento').value;
+            const material = document.getElementById('material').value.trim();
+            const descricao = document.getElementById('descricaoProduto').value.trim();
+            const lote = document.getElementById('lote').value.trim();
+            const fabricacao = document.getElementById('fabricacao').value;
+            const vencimento = document.getElementById('vencimento').value;
             const qtdCx = document.getElementById('qtdCxPallet').value;
             const qtdUn = document.getElementById('qtdUnPallet').value;
-            const posicao = document.getElementById('posicaoEndereco').value;
-            const ud = document.getElementById('udBarras').value;
+            const posicao = document.getElementById('posicaoEndereco').value.trim();
+            const ud = document.getElementById('udBarras').value.trim();
 
             if (!material || !lote) {
-                alert('Preencha ao menos o Material e o Lote.');
+                alert('Preencha ao menos o Código do Material e o Lote.');
                 return;
             }
 
-            itensConferidos.push({ material, descricao, lote, validade, qtdCx, qtdUn, posicao, ud });
+            itensConferidos.push({ material, descricao, lote, fabricacao, vencimento, qtdCx, qtdUn, posicao, ud });
             atualizarListaItens();
 
+            // Limpar campos de itens
             document.getElementById('material').value = '';
             document.getElementById('descricaoProduto').value = '';
             document.getElementById('lote').value = '';
@@ -519,17 +759,24 @@
 
         function atualizarListaItens() {
             const container = document.getElementById('listaItensContainer');
+            const contador = document.getElementById('contadorItens');
+
+            contador.innerText = `${itensConferidos.length} item(ns)`;
+
             if (itensConferidos.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 italic text-center py-2">Nenhum item adicionado ainda.</p>`;
+                container.innerHTML = `<p class="text-slate-400 italic text-center py-4">Nenhum item adicionado ainda.</p>`;
                 return;
             }
+
             container.innerHTML = itensConferidos.map((item, index) => `
-                <div class="bg-slate-50 p-2 rounded border flex justify-between items-center mb-1">
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
                     <div>
-                        <span class="font-bold text-blue-900">${item.material} - ${item.descricao}</span><br>
-                        <span class="text-slate-500">Lote: ${item.lote} | Val: ${item.validade} | Pos: ${item.posicao} | Qtd: ${item.qtdCx} cx (${item.qtdUn} un)</span>
+                        <span class="font-bold text-blue-900">${item.material} - ${item.descricao || 'Sem descrição'}</span><br>
+                        <span class="text-slate-500">Lote: <b>${item.lote}</b> | Val: ${item.vencimento || 'N/I'} | Qtd: ${item.qtdCx || 0} cx (${item.qtdUn || 0} un)</span>
                     </div>
-                    <button onclick="removerItem(${index})" class="text-red-500 font-bold px-2 py-1">✕</button>
+                    <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700 font-bold px-2 py-1 text-sm">
+                        ✕
+                    </button>
                 </div>
             `).join('');
         }
@@ -541,24 +788,26 @@
 
         function preencherAcaoCorretiva() {
             const sel = document.getElementById('atalhoRnc').value;
-            if(sel) document.getElementById('acaoCorretiva').value = sel;
+            if (sel) document.getElementById('acaoCorretiva').value = sel;
         }
 
         function registrarRnc() {
-            const desc = document.getElementById('descRnc').value;
-            const acao = document.getElementById('acaoCorretiva').value;
-            const num = document.getElementById('numRnc').value;
-            const resp = document.getElementById('responsavelRnc').value;
+            const desc = document.getElementById('descRnc').value.trim();
+            const acao = document.getElementById('acaoCorretiva').value.trim();
+            const num = document.getElementById('numRnc').value.trim();
+            const resp = document.getElementById('responsavelRnc').value.trim();
 
-            if(!desc) {
-                alert('Informe a descrição da não conformidade.');
+            if (!desc) {
+                alert('Informe a descrição do problema.');
                 return;
             }
 
             listaRnc.push({ desc, acao, num, resp });
+            
             document.getElementById('listaRncContainer').innerHTML = listaRnc.map(r => `
-                <div class="bg-amber-50 border border-amber-200 p-2 rounded mb-1 text-xs text-amber-900">
-                    <b>${r.num || 'RNC'}</b>: ${r.desc} - Ação: ${r.acao} (${r.resp})
+                <div class="bg-amber-50 border border-amber-200 p-2 rounded-lg mb-1.5 text-xs text-amber-900">
+                    <b>${r.num || 'RNC'}</b>: ${r.desc} <br>
+                    <span class="text-amber-800">Ação: ${r.acao || 'N/A'} (${r.resp || 'N/I'})</span>
                 </div>
             `).join('');
 
@@ -568,8 +817,11 @@
             document.getElementById('responsavelRnc').value = '';
         }
 
-        function acionarCameraReal() {
-            document.getElementById('inputCameraReal').click();
+        /* =======================================================
+           7. CÂMERA NATIVA & GALERIA
+           ======================================================= */
+        function acionarCameraNativa() {
+            document.getElementById('inputCameraNativa').click();
         }
 
         function processarFotoCapturada(event) {
@@ -581,7 +833,11 @@
                 const tipo = document.getElementById('tipoFoto').value;
                 const base64Image = e.target.result;
 
-                fotosCapturadas.push({ tipo, url: base64Image, hora: new Date().toLocaleTimeString() });
+                fotosCapturadas.push({
+                    tipo,
+                    url: base64Image,
+                    hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
                 atualizarGaleriaFotos();
             };
             reader.readAsDataURL(file);
@@ -591,11 +847,11 @@
         function atualizarGaleriaFotos() {
             const galeria = document.getElementById('galeriaFotos');
             galeria.innerHTML = fotosCapturadas.map((f, i) => `
-                <div class="bg-slate-50 border rounded p-1 text-center text-xs relative">
-                    <img src="${f.url}" class="h-24 w-full object-cover rounded mb-1">
-                    <span class="truncate block text-[10px] font-semibold">${f.tipo}</span>
+                <div class="bg-slate-50 border rounded-lg p-1.5 text-center relative shadow-sm">
+                    <img src="${f.url}" class="h-24 w-full object-cover rounded-md mb-1">
+                    <span class="truncate block text-[10px] font-bold text-slate-700">${f.tipo}</span>
                     <span class="text-[9px] text-slate-400">${f.hora}</span>
-                    <button onclick="removerFoto(${i})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">✕</button>
+                    <button onclick="removerFoto(${i})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow">✕</button>
                 </div>
             `).join('');
         }
@@ -605,30 +861,42 @@
             atualizarGaleriaFotos();
         }
 
+        /* =======================================================
+           8. SALVAMENTO LOCAL & TRANSMISSÃO
+           ======================================================= */
         function salvarRascunho() {
-            alert('Rascunho salvo localmente no dispositivo!');
+            const rascunho = {
+                operador: document.getElementById('operador').value,
+                docTransporte: document.getElementById('docTransporte').value,
+                placaVeiculo: document.getElementById('placaVeiculo').value,
+                transportadora: document.getElementById('transportadora').value,
+                itens: itensConferidos
+            };
+            localStorage.setItem('rascunho_conferencia', JSON.stringify(rascunho));
+            alert('Rascunho salvo no dispositivo!');
         }
 
         async function transmitirDados() {
-            const operador = document.getElementById('operador').value;
-            const docTransporte = document.getElementById('docTransporte').value;
-            const placaVeiculo = document.getElementById('placaVeiculo').value;
+            const operador = document.getElementById('operador').value.trim();
+            const docTransporte = document.getElementById('docTransporte').value.trim();
+            const placaVeiculo = document.getElementById('placaVeiculo').value.trim();
 
             if (!operador || !docTransporte || !placaVeiculo) {
-                alert('Preencha os dados básicos (Operador, DT e Placa) antes de transmitir.');
+                alert('Preencha os campos obrigatórios: Operador, DT e Placa.');
                 return;
             }
 
             if (!supabaseClient) {
-                alert('Conexão com o Supabase ausente. Configure as chaves.');
+                alert('Configure a conexão com o Supabase antes de enviar.');
                 return;
             }
 
+            // Validação dos checklists
             const respostasVeiculo = {};
             for (let i = 0; i < itensVeiculo.length; i++) {
                 const checked = document.querySelector(`input[name="v_${i}"]:checked`);
                 if (!checked) {
-                    alert(`Por favor, responda o item do veículo: "${itensVeiculo[i]}"`);
+                    alert(`Responda o item do veículo: "${itensVeiculo[i]}"`);
                     return;
                 }
                 respostasVeiculo[itensVeiculo[i]] = checked.value;
@@ -638,7 +906,7 @@
             for (let i = 0; i < itensCarregamento.length; i++) {
                 const checked = document.querySelector(`input[name="c_${i}"]:checked`);
                 if (!checked) {
-                    alert(`Por favor, responda o item do carregamento: "${itensCarregamento[i]}"`);
+                    alert(`Responda o item do carregamento: "${itensCarregamento[i]}"`);
                     return;
                 }
                 respostasCarregamento[itensCarregamento[i]] = checked.value;
@@ -646,7 +914,7 @@
 
             const avaliacaoFinal = document.getElementById('avaliacaoFinal').value;
             if (!avaliacaoFinal) {
-                alert('Por favor, selecione a Avaliação Final do Veículo.');
+                alert('Selecione a Avaliação Final do Veículo.');
                 return;
             }
 
@@ -656,6 +924,10 @@
                 placa: placaVeiculo,
                 transportadora: document.getElementById('transportadora').value,
                 turno: document.getElementById('turno').value,
+                temp_inicio: document.getElementById('tempInicio').value,
+                temp_meio: document.getElementById('tempMeio').value,
+                temp_fim: document.getElementById('tempFim').value,
+                temp_veiculo: document.getElementById('tempVeiculo').value,
                 itens: itensConferidos,
                 checklist_veiculo: respostasVeiculo,
                 checklist_carregamento: respostasCarregamento,
@@ -672,32 +944,66 @@
 
                 if (error) throw error;
 
-                alert('Dados e fotos transmitidos com sucesso para a sala em tempo real!');
+                alert('Dados transmitidos com sucesso para o Supabase!');
+                localStorage.removeItem('rascunho_conferencia');
             } catch (err) {
-                console.error('Erro de transmissão:', err);
-                alert('Erro ao enviar dados. Verifique a tabela "conferencia_carga" no Supabase.');
+                console.error('Erro na transmissão:', err);
+                alert('Erro ao enviar para o Supabase. Verifique sua tabela ou conexão.');
             }
         }
 
+        /* =======================================================
+           9. EXPORTAÇÃO EXCEL & WHATSAPP
+           ======================================================= */
         function exportarExcel() {
-            if(itensConferidos.length === 0) {
+            if (itensConferidos.length === 0) {
                 alert('Adicione ao menos um item para exportar.');
                 return;
             }
             const ws = XLSX.utils.json_to_sheet(itensConferidos);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ConferenciaCarga");
-            XLSX.writeFile(wb, "Relatorio_Conferencia_Carga.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
+            XLSX.writeFile(wb, `Conferencia_DT_${document.getElementById('docTransporte').value || 'Geral'}.xlsx`);
         }
 
         function compartilharWhatsApp() {
             const dt = document.getElementById('docTransporte').value || 'N/A';
             const placa = document.getElementById('placaVeiculo').value || 'N/A';
-            const mensagem = encodeURIComponent(`*Relatório de Conferência de Carga*\nDT: ${dt}\nPlaca: ${placa}\nItens conferidos: ${itensConferidos.length}\nRNCs registradas: ${listaRnc.length}\nFotos tiradas: ${fotosCapturadas.length}`);
-            window.open(`https://api.whatsapp.com/send?phone=&text=${mensagem}`, '_blank');
+            const status = document.getElementById('avaliacaoFinal').value || 'Pendente';
+            
+            const msg = encodeURIComponent(
+                `*RELATÓRIO DE CONFERÊNCIA DE CARGA*\n` +
+                `📋 *DT:* ${dt}\n` +
+                `🚛 *Placa:* ${placa}\n` +
+                `📦 *Itens Conferidos:* ${itensConferidos.length}\n` +
+                `⚠️ *RNCs Registradas:* ${listaRnc.length}\n` +
+                `📸 *Fotos:* ${fotosCapturadas.length}\n` +
+                `✅ *Status Final:* ${status}`
+            );
+            
+            window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
         }
 
-        window.onload = carregarConexaoSalva;
+        // Status Online/Offline
+        window.addEventListener('online', () => document.getElementById('badgeOnline').className = "w-2 h-2 rounded-full bg-emerald-400 inline-block");
+        window.addEventListener('offline', () => document.getElementById('badgeOnline').className = "w-2 h-2 rounded-full bg-red-500 inline-block");
+
+        // Controle da Tela de Abertura (Splash Screen Tirol)
+        function fecharSplashScreen() {
+            const splash = document.getElementById('splashScreen');
+            if (splash) {
+                setTimeout(() => {
+                    splash.classList.add('fade-out');
+                }, 1400); // Exibe por 1.4s e leva 0.4s para fazer o fade-out suave (total 1.8s)
+            }
+        }
+
+        // Inicialização
+        window.onload = function() {
+            carregarConexaoSalva();
+            fecharSplashScreen();
+        };
     </script>
 </body>
 </html>
+```
