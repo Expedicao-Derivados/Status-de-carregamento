@@ -108,6 +108,11 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
             <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Conferência de Etiqueta / Palete</h2>
             
+            <!-- Botão de Escanear Etiqueta restaurado -->
+            <button onclick="escanearEtiqueta()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow transition mb-3">
+                📷 Escanear Etiqueta do Produto
+            </button>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
                 <div>
                     <label class="block text-slate-600 font-medium mb-1">Material</label>
@@ -266,7 +271,6 @@
                     </select>
                 </div>
                 
-                <!-- Input de arquivo invisível acionado pela câmera real do dispositivo -->
                 <input type="file" id="inputCameraReal" accept="image/*" capture="environment" class="hidden" onchange="processarFotoCapturada(event)">
 
                 <button onclick="acionarCameraReal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded flex items-center justify-center gap-2 shadow transition">
@@ -322,7 +326,7 @@
 
         let itensConferidos = [];
         let listaRnc = [];
-        let fotosCapturadas = []; // Armazena os dados das fotos reais (base64)
+        let fotosCapturadas = [];
 
         function renderChecklists() {
             const containerV = document.getElementById('checklistVeiculo');
@@ -424,6 +428,16 @@
             }
         }
 
+        // Função de atalho de preenchimento da etiqueta
+        function escanearEtiqueta() {
+            document.getElementById('material').value = "1002161";
+            document.getElementById('descricaoProduto').value = "REQUEIJO CULINARIO 1,01KG";
+            document.getElementById('lote').value = "00060";
+            document.getElementById('fabricacao').value = "2026-09-01";
+            document.getElementById('vencimento').value = "2026-12-30";
+            alert('Etiqueta simulada/preenchida com sucesso!');
+        }
+
         function adicionarItemLista() {
             const material = document.getElementById('material').value;
             const descricao = document.getElementById('descricaoProduto').value;
@@ -504,12 +518,10 @@
             document.getElementById('responsavelRnc').value = '';
         }
 
-        // Aciona a câmera real do dispositivo móvel
         function acionarCameraReal() {
             document.getElementById('inputCameraReal').click();
         }
 
-        // Processa a foto tirada pela câmera real
         function processarFotoCapturada(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -523,7 +535,7 @@
                 atualizarGaleriaFotos();
             };
             reader.readAsDataURL(file);
-            event.target.value = ''; // Limpa para permitir tirar outra foto igual
+            event.target.value = '';
         }
 
         function atualizarGaleriaFotos() {
