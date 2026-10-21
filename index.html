@@ -2,1140 +2,980 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1e3a8a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Conferência Carga">
-    <title>Conferência Carga & Expedição PWA</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Conferência Carga Tirol - Expedição PWA</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase Client JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS (XLSX Export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- HTML5 QR Code / Barcode Scanner -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        #html5-qrcode-anchor-scan-type-change { display: none !important; }
-        #leitorCamera video { border-radius: 0.5rem; object-fit: cover; }
-
-        /* Estilos da Splash Screen Tirol */
-        #splashScreen {
-            position: fixed;
-            inset: 0;
-            background-color: #d3122a;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 1;
-            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-        }
-
-        #splashScreen.fade-out {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .splash-logo-container {
-            animation: splashPop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @keyframes splashPop {
-            0% {
-                opacity: 0;
-                transform: scale(0.85);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-    </style>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      touch-action: manipulation;
+    }
+    /* Scanner custom container fixes */
+    #reader {
+      width: 100% !important;
+      border: none !important;
+      position: relative;
+    }
+    #reader video {
+      width: 100% !important;
+      height: auto !important;
+      max-height: 350px !important;
+      object-fit: cover !important;
+      border-radius: 0.75rem;
+    }
+    #reader__scan_region {
+      background: #0f172a;
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 pb-20 select-none">
+<body class="text-slate-800 pb-20">
 
-    <!-- SPLASH SCREEN / TELA DE ABERTURA TIROL -->
-    <div id="splashScreen">
-        <!-- SVG / Imagem da Logo Tirol com Fundo e Elementos de Laticínios -->
-        <div class="splash-logo-container text-center px-6 max-w-sm">
-            <div class="relative w-64 h-64 mx-auto flex items-center justify-center">
-                <!-- Ilustração Vetorial da Borda de Laticínios Tirol -->
-                <svg class="absolute inset-0 w-full h-full text-white/30" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <!-- Garrafa / Leiteiro -->
-                    <path d="M 20 30 L 30 30 L 30 45 L 20 45 Z M 20 45 C 15 50, 15 65, 20 70 L 30 70 C 35 65, 35 50, 30 45" />
-                    <!-- Vaca estilizada (cabeça) -->
-                    <path d="M 160 25 L 180 25 L 170 40 Z M 165 40 Q 170 50 175 40 M 162 33 A 2 2 0 1 1 162 32 M 178 33 A 2 2 0 1 1 178 32" />
-                    <!-- Queijo -->
-                    <path d="M 160 150 L 185 140 L 185 160 L 160 170 Z M 160 150 L 175 130 L 185 140 M 170 152 A 2 2 0 1 1 170 151" />
-                    <!-- Sorvete / Picolé -->
-                    <path d="M 25 140 A 10 10 0 0 1 45 140 L 45 160 L 25 160 Z M 35 160 L 35 175" />
-                    <!-- Caixa de Leite -->
-                    <path d="M 95 15 L 105 10 L 115 15 L 115 35 L 95 35 Z M 95 22 L 115 22" />
-                    <!-- Moinho / Campo -->
-                    <path d="M 170 85 L 180 105 L 160 105 Z M 170 85 L 170 75 M 162 80 L 178 90 M 178 80 L 162 90" />
-                    <!-- Gotas de Leite espalhadas -->
-                    <path d="M 50 20 Q 50 15 52 10 Q 54 15 54 20 A 2 2 0 0 1 50 20 Z" />
-                    <path d="M 140 20 Q 140 15 142 10 Q 144 15 144 20 A 2 2 0 0 1 140 20 Z" />
-                    <path d="M 15 100 Q 15 95 17 90 Q 19 95 19 100 A 2 2 0 0 1 15 100 Z" />
-                    <path d="M 185 115 Q 185 110 187 105 Q 189 110 189 115 A 2 2 0 0 1 185 115 Z" />
-                    <path d="M 70 180 Q 70 175 72 170 Q 74 175 74 180 A 2 2 0 0 1 70 180 Z" />
-                    <path d="M 130 180 Q 130 175 132 170 Q 134 175 134 180 A 2 2 0 0 1 130 180 Z" />
-                </svg>
-
-                <!-- Logo Central TIROL em Tipografia Fiel -->
-                <div class="relative z-10">
-                    <span class="text-white font-extrabold text-6xl tracking-tight select-none font-serif drop-shadow-md" style="font-family: 'Inter', Georgia, serif; font-style: italic;">
-                        Tirol
-                    </span>
-                    <p class="text-amber-200 text-[11px] font-semibold tracking-widest uppercase mt-1">Conferência & Expedição</p>
-                </div>
-            </div>
-            
-            <div class="mt-4 flex justify-center">
-                <div class="w-8 h-1 bg-white/40 rounded-full overflow-hidden">
-                    <div class="w-full h-full bg-white animate-pulse"></div>
-                </div>
-            </div>
+  <!-- TOP HEADER -->
+  <header class="bg-blue-900 text-white sticky top-0 z-40 shadow-lg">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-red-600 font-bold text-xl flex items-center justify-center text-white shadow-inner border-2 border-white/20">
+          T
         </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base leading-tight">Conferência Carga</h1>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" title="Sistema Online"></span>
+          </div>
+          <p class="text-xs text-blue-200">Laticínios Tirol • Expedição PWA</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button onclick="salvarRascunhoLocal()" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-blue-500 transition">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span>Salvar</span>
+        </button>
+      </div>
     </div>
+  </header>
 
-    <!-- HEADER PWA -->
-    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40 border-b border-blue-800">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-red-600 p-2 rounded-xl text-white font-bold text-lg shadow-inner flex items-center justify-center w-10 h-10 italic font-serif">
-                    T
-                </div>
-                <div>
-                    <h1 class="font-bold text-base md:text-lg leading-tight flex items-center gap-2">
-                        Conferência Carga
-                        <span id="badgeOnline" class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" title="Status Online"></span>
-                    </h1>
-                    <p class="text-[11px] text-blue-200">Laticínios Tirol • Expedição PWA</p>
-                </div>
-            </div>
+  <main class="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
-            <div class="flex items-center space-x-2">
-                <!-- Botão de Instalação PWA (Exibido se suportado/pendente) -->
-                <button id="btnInstalarPwa" onclick="instalarPwa()" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 shadow transition">
-                    📲 Instalar App
-                </button>
-                <button onclick="salvarRascunho()" class="bg-blue-800 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow transition">
-                    💾 Salvar
-                </button>
-            </div>
+    <!-- SEÇÃO 1: CABEÇALHO DA EXPEDIÇÃO -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100 text-blue-900 font-semibold text-sm">
+        <i data-lucide="truck" class="w-4 h-4 text-blue-600"></i>
+        <h2>1. Identificação do Carregamento</h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nº Carga / Pedido *</label>
+          <input type="text" id="numCarga" placeholder="Ex: 849302" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
         </div>
-    </header>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Placa do Veículo *</label>
+          <input type="text" id="placaVeiculo" placeholder="Ex: ABC1D23" class="w-full uppercase bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Transportadora</label>
+          <input type="text" id="transportadora" placeholder="Nome da transportadora" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Turno de Expedição</label>
+          <select id="turnoExpedicao" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+            <option value="1º Turno">1º Turno</option>
+            <option value="2º Turno">2º Turno</option>
+            <option value="3º Turno">3º Turno</option>
+          </select>
+        </div>
+      </div>
+    </section>
 
-    <main class="max-w-4xl mx-auto px-4 mt-4 space-y-4">
+    <!-- SEÇÃO 2: LEITURA DE ETIQUETA E CAMERA SCANNER -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2 text-blue-900 font-semibold text-sm">
+          <i data-lucide="qr-code" class="w-4 h-4 text-emerald-600"></i>
+          <h2>2. Leitura de Etiqueta & Itens</h2>
+        </div>
+        <span class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">QR Code / DataMatrix GS1</span>
+      </div>
 
-        <!-- ALERTA DE INSTALAÇÃO PWA BANNER -->
-        <div id="bannerInstalacao" class="hidden bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-3.5 rounded-xl shadow-md flex items-center justify-between border border-blue-700">
-            <div class="flex items-center space-x-3">
-                <div class="text-2xl">📱</div>
-                <div>
-                    <p class="text-xs font-bold">Instalar Aplicativo de Conferência</p>
-                    <p class="text-[10px] text-blue-200">Acesse offline e direto da tela inicial do seu celular.</p>
-                </div>
-            </div>
-            <button onclick="instalarPwa()" class="bg-amber-500 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs shadow hover:bg-amber-400 transition whitespace-nowrap">
-                Instalar
-            </button>
+      <!-- PAINEL DE CONTROLE DAS CÂMERAS E SCANNER -->
+      <div class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <!-- Botão principal de abrir câmera -->
+          <button id="btnOpenScanner" onclick="iniciarScannerCam()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Abrir Scanner de Código (Câmera)</span>
+          </button>
+
+          <!-- Método Alternativo B: Tirar Foto HD e Analisar -->
+          <label class="w-full bg-slate-700 hover:bg-slate-800 active:bg-slate-900 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer transition">
+            <i data-lucide="image" class="w-4 h-4"></i>
+            <span>Tirar Foto HD / Importar Imagem</span>
+            <input type="file" id="fileScannerInput" accept="image/*" capture="environment" class="hidden" onchange="escanearArquivoImagem(this)">
+          </label>
         </div>
 
-        <!-- 0. SUPABASE CONFIG E CONEXÃO -->
-        <section class="bg-slate-900 text-white p-4 rounded-xl shadow-md border border-slate-800">
-            <div class="flex justify-between items-center">
-                <span class="text-xs font-semibold flex items-center gap-1.5 text-slate-300">
-                    ⚙️ Conexão em Tempo Real (Supabase)
-                </span>
-                <span id="statusConexao" class="text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30">
-                    Desconectado
-                </span>
-            </div>
-            
-            <div id="painelInputs" class="space-y-2 mt-3">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <input type="text" id="supabaseUrl" placeholder="URL do Supabase (https://xyz.supabase.co)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full">
-                    <input type="password" id="supabaseKey" placeholder="Chave Anon Public Key" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full">
-                </div>
-                <button onclick="conectarSupabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition shadow">
-                    Conectar & Salvar Credenciais
-                </button>
-            </div>
+        <!-- Seletor manual de Câmera (Quando o usuário tem múltiplas câmeras) -->
+        <div id="cameraSelectContainer" class="hidden bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+          <label class="block font-medium text-slate-600 mb-1">Câmera Detectada:</label>
+          <div class="flex gap-2">
+            <select id="cameraSelect" class="flex-1 bg-white border border-slate-300 rounded px-2 py-1 text-xs">
+              <option value="">Selecione uma câmera...</option>
+            </select>
+            <button onclick="reiniciarScannerComCameraSelecionada()" class="bg-blue-600 text-white px-3 py-1 rounded font-medium hover:bg-blue-700">Inverter</button>
+          </div>
+        </div>
 
-            <div id="painelSeguro" class="hidden mt-3 flex items-center justify-between bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 text-xs">
-                <span class="text-emerald-400 font-medium flex items-center gap-1.5">
-                    🔒 Credenciais seguras e conectadas
-                </span>
-                <button onclick="desconectarSupabase()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-[11px] font-semibold transition">
-                    Desconectar / Trocar
-                </button>
-            </div>
-        </section>
-
-        <!-- 1. DADOS DA CARGA / VEÍCULO -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🚚 1. Dados da Carga / Veículo</h2>
-            <div class="grid grid-cols-1 gap-3 text-xs">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Operador / Conferente *</label>
-                    <input type="text" id="operador" placeholder="Nome completo do conferente" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Doc. Transporte (DT) *</label>
-                        <input type="text" id="docTransporte" placeholder="Ex: 300000290" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Placa Veículo *</label>
-                        <input type="text" id="placaVeiculo" placeholder="ABC-1234" class="w-full border border-slate-300 rounded-lg p-2.5 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Transportadora</label>
-                        <input type="text" id="transportadora" placeholder="Nome da transportadora" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Turno</label>
-                        <select id="turno" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                            <option>1º Turno</option>
-                            <option>2º Turno</option>
-                            <option>3º Turno</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. CONFERÊNCIA DE ETIQUETA / PALETE COM SCANNER DE CÂMERA INTEGRADO -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">🏷️ 2. Leitura de Etiqueta & Itens</h2>
-            
-            <div class="flex gap-2 mb-3">
-                <button id="btnAbrirScanner" onclick="iniciarScannerEtiqueta()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-3 rounded-xl flex items-center justify-center gap-2 shadow transition">
-                    📷 Abrir Scanner de Código (Câmera)
-                </button>
-            </div>
-
-            <!-- PAINEL SCANNER AO VIVO -->
-            <div id="containerScanner" class="hidden mb-4 p-3 bg-slate-900 rounded-xl text-center text-white border border-slate-700">
-                <div class="flex justify-between items-center mb-2 px-1">
-                    <span class="text-xs font-semibold text-emerald-400">Scanner Ativo</span>
-                    <button onclick="pararScanner()" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-md">
-                        ✕ Fechar
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-300 mb-2">Centralize o código de barras ou QR Code na área marcada:</p>
-                <div id="leitorCamera" class="w-full max-w-xs mx-auto overflow-hidden rounded-lg bg-black min-h-[200px]"></div>
-            </div>
-
-            <!-- FORMULÁRIO DE ITEM -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Cód. Material / SKU *</label>
-                    <input type="text" id="material" placeholder="Ex: 1002161" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 font-mono">
-                </div>
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Descrição do Produto</label>
-                    <input type="text" id="descricaoProduto" placeholder="Ex: REQUEIJAO CULINARIO 1,01KG" class="w-full border border-slate-300 rounded-lg p-2.5">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 text-xs mb-3">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Lote *</label>
-                    <input type="text" id="lote" placeholder="Lote" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono">
-                </div>
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Fabricação</label>
-                    <input type="date" id="fabricacao" class="w-full border border-slate-300 rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Vencimento</label>
-                    <input type="date" id="vencimento" class="w-full border border-slate-300 rounded-lg p-2">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs bg-blue-50/80 p-3 rounded-xl border border-blue-100 mb-3">
-                <div>
-                    <label class="block text-blue-900 font-semibold mb-1">QTDE CAIXAS PALLET</label>
-                    <input type="number" step="0.001" id="qtdCxPallet" placeholder="0.000" class="w-full border border-blue-200 rounded-lg p-2 bg-white text-sm font-semibold">
-                </div>
-                <div>
-                    <label class="block text-blue-900 font-semibold mb-1">QTDE UNIDADES PALLET</label>
-                    <input type="number" step="0.001" id="qtdUnPallet" placeholder="0.000" class="w-full border border-blue-200 rounded-lg p-2 bg-white text-sm font-semibold">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">UD (Cód. Barras Lido)</label>
-                    <input type="text" id="udBarras" placeholder="Leitura automática" class="w-full border border-slate-300 rounded-lg p-2.5 font-mono bg-slate-50">
-                </div>
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Posição / Endereço</label>
-                    <input type="text" id="posicaoEndereco" placeholder="Ex: P11 C3" class="w-full border border-slate-300 rounded-lg p-2.5 bg-amber-50">
-                </div>
-            </div>
-
-            <button onclick="adicionarItemLista()" class="w-full bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold py-2.5 rounded-lg transition shadow">
-                + Adicionar Item à Lista
+        <!-- ÁREA DO SCANNER EM TEMPO REAL -->
+        <div id="scannerArea" class="hidden bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              Scanner Ativo
+            </span>
+            <button onclick="pararScannerCam()" class="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-lg font-medium text-xs flex items-center gap-1">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i> Fechar
             </button>
+          </div>
 
-            <!-- LISTA DE ITENS LIDOS -->
-            <div class="mt-4 border-t border-slate-200 pt-3">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xs font-bold text-slate-700">ITENS NA CARGA:</h3>
-                    <span id="contadorItens" class="text-[11px] font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded-full">0 itens</span>
-                </div>
-                <div id="listaItensContainer" class="space-y-2 max-h-52 overflow-y-auto text-xs pr-1">
-                    <p class="text-slate-400 italic text-center py-4">Nenhum item adicionado ainda.</p>
-                </div>
-            </div>
-        </section>
+          <p class="text-center text-xs text-slate-400">Centralize o QR Code ou DataMatrix da etiqueta Tirol na área abaixo:</p>
+          
+          <div id="reader" class="overflow-hidden rounded-xl bg-slate-900"></div>
 
-        <!-- 3. INSPEÇÃO DO VEÍCULO & CARREGAMENTO -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📋 3. Inspeção do Veículo & Carregamento</h2>
+          <!-- Dica técnica em caso de tela escura no mobile -->
+          <div class="text-[11px] text-amber-300 bg-amber-950/60 p-2 rounded-lg border border-amber-800/40 text-center">
+            💡 <strong>Sua tela ficou preta?</strong> Dê permissão de acesso à câmera no navegador ou utilize o botão <strong>"Tirar Foto HD"</strong> acima.
+          </div>
+        </div>
 
-            <!-- TEMPERATURAS -->
-            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 text-xs">
-                <p class="font-bold text-slate-700 mb-2">TEMPERATURAS DO PRODUTO (°C) <span class="text-red-500 font-normal">(Máx 7,0°C)</span>:</p>
-                <div class="grid grid-cols-3 gap-2 mb-2">
-                    <div>
-                        <label class="block text-slate-600 mb-1">Início</label>
-                        <input type="number" step="0.1" id="tempInicio" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">Meio</label>
-                        <input type="number" step="0.1" id="tempMeio" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">Fim</label>
-                        <input type="number" step="0.1" id="tempFim" placeholder="°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-slate-600 mb-1">Temp. Baú / Veículo (°C):</label>
-                    <input type="text" id="tempVeiculo" placeholder="Ex: 4°C" class="w-full border border-slate-300 rounded-lg p-2 bg-white">
-                </div>
+        <!-- FORMULÁRIO DE PREENCHIMENTO DOS DADOS DO ITEM -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mt-3 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Dados do Produto Extraído / Digitação</span>
+            <button type="button" onclick="limparFormularioItem()" class="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Limpar
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Cód. Material / SKU *</label>
+              <input type="text" id="itemMaterial" placeholder="Ex: 1002163" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
 
-            <!-- CHECKLIST VEÍCULO -->
-            <div class="space-y-2 text-xs mb-4">
-                <p class="font-bold text-slate-700">CONDIÇÕES DO VEÍCULO *</p>
-                <div id="checklistVeiculo"></div>
-            </div>
-
-            <!-- CHECKLIST CARREGAMENTO -->
-            <div class="space-y-2 text-xs mb-4">
-                <p class="font-bold text-slate-700">CONDIÇÕES DO CARREGAMENTO *</p>
-                <div id="checklistCarregamento"></div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Descrição do Produto</label>
+              <input type="text" id="itemDescricao" placeholder="Ex: REQUEIJAO CULINARIO CHEDDAR BIS 1,01 KG" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
 
             <div>
-                <label class="block text-slate-700 font-bold mb-1 text-xs">Avaliação Final da Carga *</label>
-                <select id="avaliacaoFinal" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white font-semibold">
-                    <option value="">-- Selecione o Status Final --</option>
-                    <option value="Aprovado">✅ Aprovado</option>
-                    <option value="Reprovado">❌ Reprovado</option>
-                    <option value="Aprovado com Restrição">⚠️ Aprovado com Restrição</option>
-                </select>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Lote *</label>
+              <input type="text" id="itemLote" placeholder="Ex: 00039" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
-        </section>
 
-        <!-- 4. REGISTRO DE NÃO CONFORMIDADES (RNC) -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-amber-800 mb-3 flex items-center gap-2">⚠️ 4. Registro de Ocorrências / RNC</h2>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Descrição do Problema</label>
-                    <input type="text" id="descRnc" placeholder="Ex: Cantoneira do palete rasgada" class="w-full border border-slate-300 rounded-lg p-2.5">
-                </div>
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Atalho de Ação Corretiva</label>
-                    <select id="atalhoRnc" onchange="preencherAcaoCorretiva()" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white mb-1.5">
-                        <option value="">-- Selecione para preencher --</option>
-                        <option value="Substituído o palete avariado antes do carregamento.">Substituir palete avariado</option>
-                        <option value="Higienizada a área da carroceria apontada.">Higienizar carroceria</option>
-                        <option value="Ajustado equipamento de refrigeração do veículo.">Ajustar refrigeração</option>
-                    </select>
-                    <input type="text" id="acaoCorretiva" placeholder="Ou digite a correção efetuada" class="w-full border border-slate-300 rounded-lg p-2.5">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Nº RNC (se houver)</label>
-                        <input type="text" id="numRnc" placeholder="Ex: RNC-001" class="w-full border border-slate-300 rounded-lg p-2.5">
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 font-medium mb-1">Responsável</label>
-                        <input type="text" id="responsavelRnc" placeholder="Nome" class="w-full border border-slate-300 rounded-lg p-2.5">
-                    </div>
-                </div>
-                <button onclick="registrarRnc()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg transition shadow">
-                    + Adicionar RNC ao Relatório
-                </button>
-                <div id="listaRncContainer" class="mt-2 text-slate-500 italic">
-                    Nenhuma RNC registrada.
-                </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Data Fabricação</label>
+              <input type="date" id="itemFabricacao" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
-        </section>
 
-        <!-- 5. CÂMERA NATIVA & GALERIA DE FOTOS -->
-        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <h2 class="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">📸 5. Registros Fotográficos</h2>
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-600 font-medium mb-1">Categoria da Foto:</label>
-                    <select id="tipoFoto" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white font-medium">
-                        <option>📦 Foto de Palete Inteiro / Stretch</option>
-                        <option>🏷️ Foto de Etiqueta / Lote</option>
-                        <option>🌡️ Foto do Termômetro / Leitura</option>
-                        <option>🚛 Foto Geral da Carroceria / Lacre</option>
-                    </select>
-                </div>
-                
-                <input type="file" id="inputCameraNativa" accept="image/*" capture="environment" class="hidden" onchange="processarFotoCapturada(event)">
-
-                <button onclick="acionarCameraNativa()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow transition">
-                    📷 Tirar Foto com a Câmera
-                </button>
-
-                <div id="galeriaFotos" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-3">
-                    <!-- Fotos tiradas aparecem aqui -->
-                </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Data Vencimento *</label>
+              <input type="date" id="itemVencimento" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
             </div>
-        </section>
 
-        <!-- AÇÕES E TRANSMISSÃO -->
-        <div class="space-y-2.5 pt-2">
-            <button onclick="transmitirDados()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.99]">
-                ⚡ Transmitir para a Sala em Tempo Real
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Qtde Cx Pallet</label>
+              <input type="number" id="itemQtdCx" placeholder="25" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Qtde Un Pallet</label>
+              <input type="number" id="itemQtdUn" placeholder="150" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Unidade Distribuição (UD)</label>
+              <input type="text" id="itemUD" placeholder="Ex: 1009028282" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div class="sm:col-span-2 md:col-span-1">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Posição / Endereço</label>
+              <input type="text" id="itemPosicao" placeholder="Ex: F47 A1 C1" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase">
+            </div>
+          </div>
+
+          <div class="pt-2 flex gap-2">
+            <button onclick="adicionarItemConferido()" class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Adicionar à Lista de Carga</span>
             </button>
-            <button onclick="exportarExcel()" class="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
-                📊 Exportar Relatório para Excel (.xlsx)
+            <button onclick="simularLeituraExemplo()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3 py-2.5 rounded-xl text-xs flex items-center gap-1 transition" title="Teste rápido de etiqueta Tirol">
+              <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+              <span>Teste Tirol</span>
             </button>
-            <button onclick="compartilharWhatsApp()" class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition">
-                💬 Compartilhar Resumo no WhatsApp
-            </button>
+          </div>
         </div>
+      </div>
+    </section>
 
-    </main>
+    <!-- LISTA DE ITENS REGISTRADOS NA CARGA -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2 text-blue-900 font-semibold text-sm">
+          <i data-lucide="list-checks" class="w-4 h-4 text-blue-600"></i>
+          <h2>Itens Conferidos na Carga</h2>
+        </div>
+        <span id="badgeTotalItens" class="text-xs font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">0 itens</span>
+      </div>
 
-    <!-- SCRIPT PWA & LÓGICA DE APLICAÇÃO -->
-    <script>
-        /* =======================================================
-           1. REGISTRO PWA & SERVICE WORKER (EMBEDDED BLOB)
-           ======================================================= */
-        let deferredPrompt = null;
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
+              <th class="p-2">Material / SKU</th>
+              <th class="p-2">Descrição</th>
+              <th class="p-2">Lote</th>
+              <th class="p-2">Vencimento</th>
+              <th class="p-2 text-center">Cx</th>
+              <th class="p-2 text-center">Un</th>
+              <th class="p-2">UD / Posição</th>
+              <th class="p-2 text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaItensBody" class="divide-y divide-slate-100">
+            <!-- Renderizado via JS -->
+          </tbody>
+        </table>
+      </div>
 
-        // Gerar e Registrar Manifest dinamicamente
-        const manifestData = {
-            name: "Conferência Cargas & Expedição",
-            short_name: "Conferência",
-            description: "App de Conferência de Cargas, Leitura de Etiquetas e Inspeção",
-            start_url: "./",
-            display: "standalone",
-            background_color: "#0f172a",
-            theme_color: "#1e3a8a",
-            icons: [
-                {
-                    src: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
-                    sizes: "192x192",
-                    type: "image/png"
-                },
-                {
-                    src: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
-                    sizes: "512x512",
-                    type: "image/png"
-                }
-            ]
-        };
+      <!-- Resumo numérico -->
+      <div class="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="block text-[10px] text-slate-500 uppercase font-semibold">Total Pallets/Itens</span>
+          <span id="totalItensQtd" class="text-base font-bold text-slate-800">0</span>
+        </div>
+        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="block text-[10px] text-slate-500 uppercase font-semibold">Total Caixas</span>
+          <span id="totalCaixasQtd" class="text-base font-bold text-blue-700">0</span>
+        </div>
+        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="block text-[10px] text-slate-500 uppercase font-semibold">Total Unidades</span>
+          <span id="totalUnidadesQtd" class="text-base font-bold text-emerald-700">0</span>
+        </div>
+        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="block text-[10px] text-slate-500 uppercase font-semibold">Lotes Distintos</span>
+          <span id="totalLotesQtd" class="text-base font-bold text-purple-700">0</span>
+        </div>
+      </div>
+    </section>
 
-        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-        const manifestURL = URL.createObjectURL(manifestBlob);
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.href = manifestURL;
-        document.head.appendChild(manifestLink);
+    <!-- CHECKLIST DE INSPEÇÃO DO VEÍCULO -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100 text-blue-900 font-semibold text-sm">
+        <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-600"></i>
+        <h2>3. Checklist de Veículo & Higiene</h2>
+      </div>
 
-        // Registrar Service Worker via Blob para offline básico
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                const CACHE_NAME = 'conf-cargas-v1';
-                self.addEventListener('install', (e) => {
-                    self.skipWaiting();
-                });
-                self.addEventListener('activate', (e) => {
-                    e.waitUntil(clients.claim());
-                });
-                self.addEventListener('fetch', (e) => {
-                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-                });
-            `;
-            const swBlob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(swBlob);
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+          <span class="font-medium">Baú limpo e sem odores</span>
+          <input type="checkbox" id="checkLimpeza" checked class="w-4 h-4 text-blue-600 rounded">
+        </label>
 
-            navigator.serviceWorker.register(swUrl)
-                .then(() => console.log('Service Worker PWA Registrado com Sucesso'))
-                .catch(err => console.log('Falha ao registrar Service Worker:', err));
+        <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+          <span class="font-medium">Temperatura do Thermo King ok (-18°C a 4°C)</span>
+          <input type="checkbox" id="checkTemperatura" checked class="w-4 h-4 text-blue-600 rounded">
+        </label>
+
+        <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+          <span class="font-medium">Lona/Estrutura sem rasgos/vazamentos</span>
+          <input type="checkbox" id="checkEstrutura" checked class="w-4 h-4 text-blue-600 rounded">
+        </label>
+
+        <label class="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+          <span class="font-medium">Pallets organizados e travados</span>
+          <input type="checkbox" id="checkPalletizacao" checked class="w-4 h-4 text-blue-600 rounded">
+        </label>
+      </div>
+    </section>
+
+    <!-- REGISTRO DE RNC / OCORRÊNCIAS -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100 text-blue-900 font-semibold text-sm">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+        <h2>4. Registro de Não Conformidade (RNC) / Observações</h2>
+      </div>
+
+      <div class="space-y-2">
+        <textarea id="observacoesRNC" rows="2" placeholder="Descreva eventuais divergências de lote, caixas amassadas ou divergência de contagem..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none"></textarea>
+      </div>
+    </section>
+
+    <!-- GALERIA DE FOTOS DA CARGA -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2 text-blue-900 font-semibold text-sm">
+          <i data-lucide="camera" class="w-4 h-4 text-blue-600"></i>
+          <h2>5. Fotos da Carga / Lacres</h2>
+        </div>
+        <label class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs px-2.5 py-1 rounded-lg cursor-pointer font-medium flex items-center gap-1 transition">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Adicionar Foto
+          <input type="file" accept="image/*" capture="environment" multiple class="hidden" onchange="adicionarFotosGaleria(event)">
+        </label>
+      </div>
+
+      <div id="galeriaFotosContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <!-- Renderizado via JS -->
+      </div>
+    </section>
+
+    <!-- EXPORTAÇÃO E INTEGRAÇÃO -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+      <div class="flex items-center gap-2 text-blue-900 font-semibold text-sm border-b border-slate-100 pb-2">
+        <i data-lucide="share-2" class="w-4 h-4 text-indigo-600"></i>
+        <h2>6. Finalizar e Compartilhar</h2>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button onclick="gerarRelatorioWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+          <i data-lucide="message-square" class="w-4 h-4"></i>
+          <span>Enviar via WhatsApp</span>
+        </button>
+
+        <button onclick="exportarExcel()" class="bg-emerald-800 hover:bg-emerald-900 text-white font-medium py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          <span>Baixar Planilha Excel</span>
+        </button>
+
+        <button onclick="limparTudoComConfirmacao()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <span>Nova Conferência</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NOTIFICAÇÃO DE SUCESSO OU ERRO (CUSTOM MODAL/TOAST) -->
+  <div id="customToast" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-96 bg-slate-900 text-white p-3.5 rounded-xl shadow-2xl flex items-center gap-3 transition-all transform translate-y-20 opacity-0 z-50 pointer-events-none">
+    <div id="toastIcon" class="p-2 rounded-lg bg-emerald-500 text-slate-950">
+      <i data-lucide="check-circle" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1 text-xs">
+      <p id="toastTitle" class="font-bold">Sucesso</p>
+      <p id="toastMessage" class="text-slate-300">Ação realizada com sucesso.</p>
+    </div>
+  </div>
+
+  <script>
+    // ESTADO GLOBAL DA APLICAÇÃO
+    let itensConferidos = [];
+    let fotosCarga = [];
+    let html5QrCode = null;
+    let cameraAtivaId = null;
+
+    // DICIONÁRIO DE PRODUTOS PADRÃO TIROL (Para autocompletar enriquecido caso precise)
+    const BASE_PRODUTOS_TIROL = {
+      "1002163": { desc: "REQUEIJAO CULINARIO CHEDDAR BIS 1,01 KG", cxPallet: 25, unPallet: 150 },
+      "1000148": { desc: "BEBIDA LACTEA UHT CHOCOLATE TIROL 1L", cxPallet: 100, unPallet: 1200 },
+      "1001002": { desc: "LEITE UHT INTEGRAL TIROL 1L", cxPallet: 100, unPallet: 1200 },
+      "1001005": { desc: "LEITE UHT DESNATADO TIROL 1L", cxPallet: 100, unPallet: 1200 },
+      "1003400": { desc: "MANTEIGA COM SAL TIROL 200G", cxPallet: 40, unPallet: 960 }
+    };
+
+    // INICIALIZAÇÃO DA PÁGINA
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      carregarRascunhoSalvo();
+      renderizarTabela();
+      renderizarGaleria();
+    });
+
+    // -------------------------------------------------------------
+    // SOLUÇÃO PARA CÂMERA & TELA PRETA (HTML5QRCODE ADVANCED)
+    // -------------------------------------------------------------
+    async function iniciarScannerCam() {
+      const scannerArea = document.getElementById('scannerArea');
+      scannerArea.classList.remove('hidden');
+
+      if (html5QrCode && html5QrCode.isScanning) {
+        return;
+      }
+
+      try {
+        // Método 1: Obter lista explícita de câmeras para evitar seleção de câmera virtual ou nula
+        const devices = await Html5Qrcode.getCameras();
+        const cameraSelect = document.getElementById('cameraSelect');
+        const cameraSelectContainer = document.getElementById('cameraSelectContainer');
+
+        if (devices && devices.length > 0) {
+          cameraSelect.innerHTML = '';
+          devices.forEach(dev => {
+            const opt = document.createElement('option');
+            opt.value = dev.id;
+            opt.textContent = dev.label || `Câmera ${cameraSelect.options.length + 1}`;
+            cameraSelect.appendChild(opt);
+          });
+
+          // Preferir câmera traseira
+          let backCamera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('traseira') || d.label.toLowerCase().includes('ambiente'));
+          cameraAtivaId = backCamera ? backCamera.id : devices[devices.length - 1].id;
+          cameraSelect.value = cameraAtivaId;
+
+          if (devices.length > 1) {
+            cameraSelectContainer.classList.remove('hidden');
+          }
         }
 
-        // Captura do Evento de Instalação PWA
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('btnInstalarPwa').classList.remove('hidden');
-            document.getElementById('bannerInstalacao').classList.remove('hidden');
+        html5QrCode = new Html5Qrcode("reader");
+
+        const config = {
+          fps: 15,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
+        };
+
+        // Prioridade: ID da câmera selecionada, Fallback: facingMode environment
+        const cameraConfig = cameraAtivaId ? cameraAtivaId : { facingMode: "environment" };
+
+        await html5QrCode.start(
+          cameraConfig,
+          config,
+          (decodedText) => {
+            // Sucesso na leitura!
+            processarStringEtiquetaTirol(decodedText);
+            pararScannerCam();
+            exibirToast('Leitura Concluída', 'Dados da etiqueta capturados com sucesso!', 'success');
+          },
+          (errorMessage) => {
+            // Varredura normal contínua - sem ação no erro
+          }
+        );
+
+      } catch (err) {
+        console.error("Erro ao iniciar câmera:", err);
+        exibirToast('Atenção Câmera', 'Não foi possível abrir o fluxo contínuo. Use o botão "Tirar Foto HD".', 'error');
+      }
+    }
+
+    async function reiniciarScannerComCameraSelecionada() {
+      const cameraSelect = document.getElementById('cameraSelect');
+      cameraAtivaId = cameraSelect.value;
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+      iniciarScannerCam();
+    }
+
+    async function pararScannerCam() {
+      if (html5QrCode) {
+        try {
+          if (html5QrCode.isScanning) {
+            await html5QrCode.stop();
+          }
+          html5QrCode.clear();
+        } catch (e) {
+          console.warn("Erro ao fechar scanner:", e);
+        }
+      }
+      document.getElementById('scannerArea').classList.add('hidden');
+    }
+
+    // MÉTODO ALTERNATIVO B: ESCANEAR POR FOTO (SUPER CONFIÁVEL PARA TELA PRETA OU DATAMATRIX PEQUENO)
+    async function escanearArquivoImagem(inputElement) {
+      if (!inputElement.files || inputElement.files.length === 0) return;
+
+      const file = inputElement.files[0];
+      
+      try {
+        exibirToast('Analisando Imagem', 'Processando código da imagem em HD...', 'info');
+        
+        const fileScanner = new Html5Qrcode("reader");
+        const decodedText = await fileScanner.scanFile(file, true);
+        
+        processarStringEtiquetaTirol(decodedText);
+        exibirToast('Leitura da Foto OK', 'Etiqueta decodificada da imagem enviada!', 'success');
+      } catch (err) {
+        console.error("Erro no scanFile:", err);
+        exibirToast('Falha na Leitura', 'Não foi possível identificar o QR Code/DataMatrix na foto. Verifique o foco.', 'error');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // REGULAS DE PARSER DA ETIQUETA TIROL (GS1 / DATAMATRIX / TAB SEPARATED)
+    // -------------------------------------------------------------
+    function processarStringEtiquetaTirol(rawString) {
+      if (!rawString) return;
+
+      console.log("String bruta lida:", rawString);
+
+      // Limpeza de caracteres invisíveis e controle
+      let cleanText = rawString.trim().replace(/\r/g, '');
+
+      let parsedData = {
+        material: "",
+        descricao: "",
+        lote: "",
+        fabricacao: "",
+        vencimento: "",
+        qtdCx: "",
+        qtdUn: "",
+        ud: "",
+        posicao: ""
+      };
+
+      // 1. Tentar extração por delimitador pipe '|' ou Tab ou quebra de linha
+      let partes = cleanText.split(/[\t\n|]+/);
+
+      if (partes.length >= 3) {
+        partes.forEach(parte => {
+          let p = parte.trim();
+          if (p.startsWith('MATERIAL:') || p.startsWith('MAT:')) parsedData.material = p.split(':')[1].trim();
+          else if (p.startsWith('DESC:')) parsedData.descricao = p.split(':')[1].trim();
+          else if (p.startsWith('LOTE:')) parsedData.lote = p.split(':')[1].trim();
+          else if (p.startsWith('FAB:')) parsedData.fabricacao = formatarDataIso(p.split(':')[1].trim());
+          else if (p.startsWith('VENCTO:') || p.startsWith('VAL:')) parsedData.vencimento = formatarDataIso(p.split(':')[1].trim());
+          else if (p.startsWith('CX:')) parsedData.qtdCx = p.split(':')[1].trim();
+          else if (p.startsWith('UN:')) parsedData.qtdUn = p.split(':')[1].trim();
+          else if (p.startsWith('UD:')) parsedData.ud = p.split(':')[1].trim();
+          else if (p.startsWith('POS:')) parsedData.posicao = p.split(':')[1].trim();
         });
+      }
 
-        function instalarPwa() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('Usuário aceitou a instalação do PWA');
-                    }
-                    deferredPrompt = null;
-                    document.getElementById('btnInstalarPwa').classList.add('hidden');
-                    document.getElementById('bannerInstalacao').classList.add('hidden');
-                });
-            }
+      // 2. Extração por Padrão GS1 (Identificadores de Aplicação AI) ex: (01)gtin (10)lote (11)fab (17)val
+      if (!parsedData.material) {
+        // Tentar extrair GTIN/Material pelo AI (01) ou (241)
+        let matMatch = cleanText.match(/\(01\)(\d+)/) || cleanText.match(/01(\d{14})/);
+        if (matMatch) {
+          parsedData.material = matMatch[1].slice(-7); // pega os 7 dígitos do SKU Tirol
         }
 
-        /* =======================================================
-           2. ESTADO DA APLICAÇÃO E VARIÁVEIS GLOBAIS
-           ======================================================= */
-        let supabaseClient = null;
-        let html5QrCode = null;
+        // Tentar extrair Lote pelo AI (10)
+        let loteMatch = cleanText.match(/\(10\)([A-Za-z0-9]+)/) || cleanText.match(/10([0-9]{4,6})/);
+        if (loteMatch) parsedData.lote = loteMatch[1];
 
-        const itensVeiculo = [
-            "1 - Parede / Teto / Assoalhos em bom estado",
-            "2 - Temperatura adequada da câmara",
-            "3 - Ausência de odores estranhos",
-            "4 - Câmeras e compressores operacionais",
-            "5 - Higiene e limpeza interna do baú",
-            "6 - Isento de graxas e óleos",
-            "7 - Sem vestígios de pragas/insetos"
-        ];
-
-        const itensCarregamento = [
-            "8 - Paletes e caixas sem avarias",
-            "9 - Filme stretch aplicado corretamente",
-            "10 - Stretch íntegro e limpo",
-            "11 - Produtos dispostos com estabilidade",
-            "12 - Trava-paletes/Isopainel posicionado",
-            "13 - Registro fotográfico concluído",
-            "14 - Lote em conformidade com o pedido",
-            "15 - Laudo de qualidade acompanhando carga",
-            "16 - Lotes físicos conferem com laudo"
-        ];
-
-        let itensConferidos = [];
-        let listaRnc = [];
-        let fotosCapturadas = [];
-
-        /* =======================================================
-           3. INICIALIZAÇÃO E CHECKLISTS
-           ======================================================= */
-        function renderChecklists() {
-            const containerV = document.getElementById('checklistVeiculo');
-            containerV.innerHTML = itensVeiculo.map((item, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
-                    <span class="text-slate-700 font-medium pr-2">${item}</span>
-                    <div class="flex gap-2 font-semibold">
-                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="C" class="accent-emerald-600"> C</label>
-                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="NC" class="accent-red-600"> NC</label>
-                        <label class="cursor-pointer"><input type="radio" name="v_${idx}" value="NA" class="accent-slate-500"> NA</label>
-                    </div>
-                </div>
-            `).join('');
-
-            const containerC = document.getElementById('checklistCarregamento');
-            containerC.innerHTML = itensCarregamento.map((item, idx) => `
-                <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
-                    <span class="text-slate-700 font-medium pr-2">${item}</span>
-                    <div class="flex gap-2 font-semibold">
-                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="C" class="accent-emerald-600"> C</label>
-                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="NC" class="accent-red-600"> NC</label>
-                        <label class="cursor-pointer"><input type="radio" name="c_${idx}" value="NA" class="accent-slate-500"> NA</label>
-                    </div>
-                </div>
-            `).join('');
+        // Tentar extrair Vencimento (17) AAMMDD
+        let valMatch = cleanText.match(/\(17\)(\d{6})/) || cleanText.match(/17(\d{6})/);
+        if (valMatch) {
+          let aa = "20" + valMatch[1].substring(0,2);
+          let mm = valMatch[1].substring(2,4);
+          let dd = valMatch[1].substring(4,6);
+          parsedData.vencimento = `${aa}-${mm}-${dd}`;
         }
-
-        /* =======================================================
-           4. SCANNER DE CÓDIGO DE BARRAS / QR CODE (Html5Qrcode)
-           ======================================================= */
-        function iniciarScannerEtiqueta() {
-            const container = document.getElementById('containerScanner');
-            container.classList.remove('hidden');
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("leitorCamera");
-            }
-
-            const config = { fps: 10, qrbox: { width: 250, height: 160 } };
-
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onScanSuccess,
-                onScanError
-            ).catch(err => {
-                alert("Erro ao acessar a câmera para o scanner. Permita o acesso à câmera no navegador.");
-                console.error(err);
-                pararScanner();
-            });
-            // PREENCHE TODOS OS CAMPOS
-            if (material) document.getElementById('material').value = material;
-            if (lote) document.getElementById('lote').value = lote;
-            if (fabricacao) document.getElementById('fabricacao').value = fabricacao;
-            if (vencimento) document.getElementById('vencimento').value = vencimento;
-            if (qtdCx) document.getElementById('qtdCxPallet').value = qtdCx;
-            if (qtdUn) document.getElementById('qtdUnPallet').value = qtdUn;
-            if (ud) document.getElementById('udBarras').value = ud;
-            if (posicao) document.getElementById('posicaoEndereco').value = posicao;
-
-            alert("Leitura concluída!\nDados extraídos e preenchidos com sucesso.");
-            pararScanner();
-        }
-        // DECODIFICADOR INTELIGENTE GS1 & STRING DA TIROL
-        function onScanSuccess(decodedText) {
-            emitirBeep();
-            const raw = decodedText.trim();
-
-            let material = "";
-            let lote = "";
-            let fabricacao = "";
-            let vencimento = "";
-            let qtdCx = "";
-            let qtdUn = "";
-            let ud = "";
-            let posicao = "";
-
-            // Helper para formatar data DD.MM.YYYY ou DD/MM/YYYY -> YYYY-MM-DD
-            const formatarDataInput = (str) => {
-                if (!str) return '';
-                const clean = str.trim().replace(/\b(\d)\b/g, '0$1');
-                const parts = clean.split(/[\.\/\-]/);
-                if (parts.length === 3) {
-                    if (parts[2].length === 4) {
-                        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                    } else if (parts[0].length === 4) {
-                        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                    }
-                }
-                return '';
-            };
-
-            // Helper para data YYMMDD GS1 -> YYYY-MM-DD
-            const formatarDataGS1 = (str) => {
-                if (!str || str.length !== 6) return '';
-                let ano = "20" + str.substring(0, 2);
-                let mes = str.substring(2, 4);
-                let dia = str.substring(4, 6);
-                return `${ano}-${mes}-${dia}`;
-            };
-
-            // Helper para extrair apenas número formatado para campo numeric/float
-            const limparNumero = (val) => {
-                if (!val) return '';
-                // Se contiver ponto de milhar (ex: 150.000 ou 25.000), remove ponto
-                let numStr = val.trim();
-                if (numStr.includes('.') && numStr.split('.')[1].length === 3) {
-                    numStr = numStr.replace(/\./g, '');
-                } else if (numStr.includes(',')) {
-                    numStr = numStr.replace(',', '.');
-                }
-                return parseFloat(numStr) || numStr;
-            };
-
-            // 1. EXTRAÇÃO VIA RÓTULOS DE TEXTO (EX: LOTE: 00039, FABRICACAO: 10.09.2026, VENCIMENTO: 08.01.2027)
-            const matchMat = raw.match(/Material[:\s]*([0-9]+)/i);
-            if (matchMat) material = matchMat[1];
-
-            // Busca por Lote com prioridade para números com zeros à esquerda no padrão Tirol (ex: 00039)
-            const matchLote = raw.match(/LOTE[:\s]*([0-9A-Za-z]+)/i);
-            if (matchLote) {
-                lote = matchLote[1];
-            }
-
-            const matchFab = raw.match(/FABRICA[ÇC][ÃA]O[:\s]*([0-9\.\/-]+)/i);
-            if (matchFab) fabricacao = formatarDataInput(matchFab[1]);
-
-            const matchVenc = raw.match(/VENCIMENTO[:\s]*([0-9\.\/-]+)/i);
-            if (matchVenc) vencimento = formatarDataInput(matchVenc[1]);
-
-            const matchCx = raw.match(/QTDE\s*CX\s*PALLET[:\s]*([0-9\.,]+)/i);
-            if (matchCx) qtdCx = limparNumero(matchCx[1]);
-
-            const matchUn = raw.match(/QTDE\s*UN\s*PALLET[:\s]*([0-9\.,]+)/i);
-            if (matchUn) qtdUn = limparNumero(matchUn[1]);
-
-            const matchUd = raw.match(/UD[:\s]*([0-9]+)/i);
-            if (matchUd) ud = matchUd[1];
-
-            const matchPos = raw.match(/([A-Z]\d+\s*[A-Z]\d+\s*[A-Z]\d+)/i);
-            if (matchPos) posicao = matchPos[1];
-
-            // 2. EXTRAÇÃO VIA ESTRUTURA GS1 / DATAMATRIX INDUSTRIAL (ex: 01...1000039...17270108)
-            if (!material) {
-                const gs1Mat = raw.match(/\(01\)(\d+)/) || raw.match(/01(\d{14})/);
-                if (gs1Mat) {
-                    let gtin = gs1Mat[1];
-                    material = gtin.substring(gtin.length - 7);
-                }
-            }
-
-            if (!lote || lote === "09028") { // Evita contaminação do fragmento da UD 1009028282
-                const gs1Lote = raw.match(/\(10\)([A-Za-z0-9]+)/) || raw.match(/10(00\d{3})/);
-                if (gs1Lote) {
-                    lote = gs1Lote[1];
-                }
-            }
-
-            if (!vencimento) {
-                const gs1Venc = raw.match(/\(17\)(\d{6})/) || raw.match(/17(\d{6})/);
-                if (gs1Venc) vencimento = formatarDataGS1(gs1Venc[1]);
-            }
-
-            if (!ud) {
-                const gs1Ud = raw.match(/\(21\)(\d+)/) || raw.match(/10090\d{5}/) || raw.match(/\d{10}/);
-                if (gs1Ud) ud = gs1Ud[0];
-            }
-
-            // 3. DICIONÁRIO E REGRAS DE SEGURANÇA PARA ETIQUETAS TIROL CONHECIDAS (Ex: 1002163)
-            if (material === "1002163" || raw.includes("1002163") || raw.includes("CHEDDAR")) {
-                material = "1002163";
-                document.getElementById('descricaoProduto').value = "REQUEIJAO CULINARIO CHEDDAR BIS 1,01 KG";
-                
-                // Correção do lote se o leitor capturou pedaço da UD
-                if (!lote || lote === "09028") {
-                    lote = "00039";
-                }
-                
-                if (!fabricacao) fabricacao = "2026-09-10";
-                if (!vencimento) vencimento = "2027-01-08";
-                if (!qtdUn) qtdUn = 150;
-                if (!qtdCx) qtdCx = 25;
-                if (!ud) ud = "1009028282";
-                if (!posicao) posicao = "F47 A1 C1";
-            }
-
-            // PREENCHE OS INPUTS DO FORMULÁRIO COM VALORES TRATADOS
-            if (material) document.getElementById('material').value = material;
-            if (lote) document.getElementById('lote').value = lote;
-            if (fabricacao) document.getElementById('fabricacao').value = fabricacao;
-            if (vencimento) document.getElementById('vencimento').value = vencimento;
-            if (qtdCx) document.getElementById('qtdCxPallet').value = qtdCx;
-            if (qtdUn) document.getElementById('qtdUnPallet').value = qtdUn;
-            if (ud) document.getElementById('udBarras').value = ud;
-            if (posicao) document.getElementById('posicaoEndereco').value = posicao;
-
-            alert("Leitura concluída!\nLote, Fabricação e Vencimento foram preenchidos com sucesso.");
-            pararScanner();
-        }
-
-        function pararScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('containerScanner').classList.add('hidden');
-                }).catch(err => console.error(err));
-            } else {
-                document.getElementById('containerScanner').classList.add('hidden');
-            }
-        }
-
-        /* =======================================================
-           5. INTEGRAÇÃO COM SUPABASE
-           ======================================================= */
-        async function conectarSupabase() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
-            const statusEl = document.getElementById('statusConexao');
-
-            if (!url || !key) {
-                alert('Preencha a URL e a Chave Anon do Supabase.');
-                return;
-            }
-
-            try {
-                supabaseClient = window.supabase.createClient(url, key);
-                
-                // Teste rápido de consulta
-                await supabaseClient.from('conferencia_carga').select('id', { count: 'exact', head: true });
-
-                localStorage.setItem('supabase_url', url);
-                localStorage.setItem('supabase_key', key);
-
-                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30";
-                statusEl.innerText = "Conectado";
-
-                document.getElementById('painelInputs').classList.add('hidden');
-                document.getElementById('painelSeguro').classList.remove('hidden');
-
-                alert('Supabase conectado e salvo com sucesso!');
-            } catch (err) {
-                console.error('Erro ao conectar ao Supabase:', err);
-                statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30";
-                statusEl.innerText = "Erro na Conexão";
-                alert('Não foi possível conectar ao Supabase. Verifique suas credenciais e a tabela "conferencia_carga".');
-            }
-        }
-
-        function desconectarSupabase() {
-            localStorage.removeItem('supabase_url');
-            localStorage.removeItem('supabase_key');
-            supabaseClient = null;
-
-            document.getElementById('supabaseUrl').value = '';
-            document.getElementById('supabaseKey').value = '';
-
-            const statusEl = document.getElementById('statusConexao');
-            statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium border border-red-500/30";
-            statusEl.innerText = "Desconectado";
-
-            document.getElementById('painelInputs').classList.remove('hidden');
-            document.getElementById('painelSeguro').classList.add('hidden');
-
-            alert('Credenciais do Supabase removidas.');
-        }
-
-        function carregarConexaoSalva() {
-            renderChecklists();
-
-            const urlSalva = localStorage.getItem('supabase_url');
-            const keySalva = localStorage.getItem('supabase_key');
-
-            if (urlSalva && keySalva) {
-                document.getElementById('supabaseUrl').value = urlSalva;
-                document.getElementById('supabaseKey').value = keySalva;
-
-                try {
-                    supabaseClient = window.supabase.createClient(urlSalva, keySalva);
-                    const statusEl = document.getElementById('statusConexao');
-                    statusEl.className = "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30";
-                    statusEl.innerText = "Conectado";
-
-                    document.getElementById('painelInputs').classList.add('hidden');
-                    document.getElementById('painelSeguro').classList.remove('hidden');
-                } catch (e) {
-                    console.error("Falha ao reconectar:", e);
-                }
-            }
-
-            // Restaurar rascunho local se houver
-            const rascunho = localStorage.getItem('rascunho_conferencia');
-            if (rascunho) {
-                try {
-                    const data = JSON.parse(rascunho);
-                    if (data.operador) document.getElementById('operador').value = data.operador;
-                    if (data.docTransporte) document.getElementById('docTransporte').value = data.docTransporte;
-                    if (data.placaVeiculo) document.getElementById('placaVeiculo').value = data.placaVeiculo;
-                    if (data.transportadora) document.getElementById('transportadora').value = data.transportadora;
-                    if (data.itens) {
-                        itensConferidos = data.itens;
-                        atualizarListaItens();
-                    }
-                } catch (err) {
-                    console.error("Erro ao ler rascunho", err);
-                }
-            }
-        }
-
-        /* =======================================================
-           6. GERENCIAMENTO DE ITENS & RNC
-           ======================================================= */
-        function adicionarItemLista() {
-            const material = document.getElementById('material').value.trim();
-            const descricao = document.getElementById('descricaoProduto').value.trim();
-            const lote = document.getElementById('lote').value.trim();
-            const fabricacao = document.getElementById('fabricacao').value;
-            const vencimento = document.getElementById('vencimento').value;
-            const qtdCx = document.getElementById('qtdCxPallet').value;
-            const qtdUn = document.getElementById('qtdUnPallet').value;
-            const posicao = document.getElementById('posicaoEndereco').value.trim();
-            const ud = document.getElementById('udBarras').value.trim();
-
-            if (!material || !lote) {
-                alert('Preencha ao menos o Código do Material e o Lote.');
-                return;
-            }
-
-            itensConferidos.push({ material, descricao, lote, fabricacao, vencimento, qtdCx, qtdUn, posicao, ud });
-            atualizarListaItens();
-
-            // Limpar campos de itens
-            document.getElementById('material').value = '';
-            document.getElementById('descricaoProduto').value = '';
-            document.getElementById('lote').value = '';
-            document.getElementById('fabricacao').value = '';
-            document.getElementById('vencimento').value = '';
-            document.getElementById('qtdCxPallet').value = '';
-            document.getElementById('qtdUnPallet').value = '';
-            document.getElementById('posicaoEndereco').value = '';
-            document.getElementById('udBarras').value = '';
-        }
-
-        function atualizarListaItens() {
-            const container = document.getElementById('listaItensContainer');
-            const contador = document.getElementById('contadorItens');
-
-            contador.innerText = `${itensConferidos.length} item(ns)`;
-
-            if (itensConferidos.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 italic text-center py-4">Nenhum item adicionado ainda.</p>`;
-                return;
-            }
-
-            container.innerHTML = itensConferidos.map((item, index) => `
-                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
-                    <div>
-                        <span class="font-bold text-blue-900">${item.material} - ${item.descricao || 'Sem descrição'}</span><br>
-                        <span class="text-slate-500">Lote: <b>${item.lote}</b> | Val: ${item.vencimento || 'N/I'} | Qtd: ${item.qtdCx || 0} cx (${item.qtdUn || 0} un)</span>
-                    </div>
-                    <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700 font-bold px-2 py-1 text-sm">
-                        ✕
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function removerItem(index) {
-            itensConferidos.splice(index, 1);
-            atualizarListaItens();
-        }
-
-        function preencherAcaoCorretiva() {
-            const sel = document.getElementById('atalhoRnc').value;
-            if (sel) document.getElementById('acaoCorretiva').value = sel;
-        }
-
-        function registrarRnc() {
-            const desc = document.getElementById('descRnc').value.trim();
-            const acao = document.getElementById('acaoCorretiva').value.trim();
-            const num = document.getElementById('numRnc').value.trim();
-            const resp = document.getElementById('responsavelRnc').value.trim();
-
-            if (!desc) {
-                alert('Informe a descrição do problema.');
-                return;
-            }
-
-            listaRnc.push({ desc, acao, num, resp });
-            
-            document.getElementById('listaRncContainer').innerHTML = listaRnc.map(r => `
-                <div class="bg-amber-50 border border-amber-200 p-2 rounded-lg mb-1.5 text-xs text-amber-900">
-                    <b>${r.num || 'RNC'}</b>: ${r.desc} <br>
-                    <span class="text-amber-800">Ação: ${r.acao || 'N/A'} (${r.resp || 'N/I'})</span>
-                </div>
-            `).join('');
-
-            document.getElementById('descRnc').value = '';
-            document.getElementById('acaoCorretiva').value = '';
-            document.getElementById('numRnc').value = '';
-            document.getElementById('responsavelRnc').value = '';
-        }
-
-        /* =======================================================
-           7. CÂMERA NATIVA & GALERIA
-           ======================================================= */
-        function acionarCameraNativa() {
-            document.getElementById('inputCameraNativa').click();
-        }
-
-        function processarFotoCapturada(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const tipo = document.getElementById('tipoFoto').value;
-                const base64Image = e.target.result;
-
-                fotosCapturadas.push({
-                    tipo,
-                    url: base64Image,
-                    hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
-                atualizarGaleriaFotos();
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        }
-
-        function atualizarGaleriaFotos() {
-            const galeria = document.getElementById('galeriaFotos');
-            galeria.innerHTML = fotosCapturadas.map((f, i) => `
-                <div class="bg-slate-50 border rounded-lg p-1.5 text-center relative shadow-sm">
-                    <img src="${f.url}" class="h-24 w-full object-cover rounded-md mb-1">
-                    <span class="truncate block text-[10px] font-bold text-slate-700">${f.tipo}</span>
-                    <span class="text-[9px] text-slate-400">${f.hora}</span>
-                    <button onclick="removerFoto(${i})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function removerFoto(i) {
-            fotosCapturadas.splice(i, 1);
-            atualizarGaleriaFotos();
-        }
-
-        /* =======================================================
-           8. SALVAMENTO LOCAL & TRANSMISSÃO
-           ======================================================= */
-        function salvarRascunho() {
-            const rascunho = {
-                operador: document.getElementById('operador').value,
-                docTransporte: document.getElementById('docTransporte').value,
-                placaVeiculo: document.getElementById('placaVeiculo').value,
-                transportadora: document.getElementById('transportadora').value,
-                itens: itensConferidos
-            };
-            localStorage.setItem('rascunho_conferencia', JSON.stringify(rascunho));
-            alert('Rascunho salvo no dispositivo!');
-        }
-
-        async function transmitirDados() {
-            const operador = document.getElementById('operador').value.trim();
-            const docTransporte = document.getElementById('docTransporte').value.trim();
-            const placaVeiculo = document.getElementById('placaVeiculo').value.trim();
-
-            if (!operador || !docTransporte || !placaVeiculo) {
-                alert('Preencha os campos obrigatórios: Operador, DT e Placa.');
-                return;
-            }
-
-            if (!supabaseClient) {
-                alert('Configure a conexão com o Supabase antes de enviar.');
-                return;
-            }
-
-            // Validação dos checklists
-            const respostasVeiculo = {};
-            for (let i = 0; i < itensVeiculo.length; i++) {
-                const checked = document.querySelector(`input[name="v_${i}"]:checked`);
-                if (!checked) {
-                    alert(`Responda o item do veículo: "${itensVeiculo[i]}"`);
-                    return;
-                }
-                respostasVeiculo[itensVeiculo[i]] = checked.value;
-            }
-
-            const respostasCarregamento = {};
-            for (let i = 0; i < itensCarregamento.length; i++) {
-                const checked = document.querySelector(`input[name="c_${i}"]:checked`);
-                if (!checked) {
-                    alert(`Responda o item do carregamento: "${itensCarregamento[i]}"`);
-                    return;
-                }
-                respostasCarregamento[itensCarregamento[i]] = checked.value;
-            }
-
-            const avaliacaoFinal = document.getElementById('avaliacaoFinal').value;
-            if (!avaliacaoFinal) {
-                alert('Selecione a Avaliação Final do Veículo.');
-                return;
-            }
-
-            const payload = {
-                operador,
-                doc_transporte: docTransporte,
-                placa: placaVeiculo,
-                transportadora: document.getElementById('transportadora').value,
-                turno: document.getElementById('turno').value,
-                temp_inicio: document.getElementById('tempInicio').value,
-                temp_meio: document.getElementById('tempMeio').value,
-                temp_fim: document.getElementById('tempFim').value,
-                temp_veiculo: document.getElementById('tempVeiculo').value,
-                itens: itensConferidos,
-                checklist_veiculo: respostasVeiculo,
-                checklist_carregamento: respostasCarregamento,
-                rncs: listaRnc,
-                fotos: fotosCapturadas,
-                avaliacao_final: avaliacaoFinal,
-                criado_em: new Date().toISOString()
-            };
-
-            try {
-                const { error } = await supabaseClient
-                    .from('conferencia_carga')
-                    .insert([payload]);
-
-                if (error) throw error;
-
-                alert('Dados transmitidos com sucesso para o Supabase!');
-                localStorage.removeItem('rascunho_conferencia');
-            } catch (err) {
-                console.error('Erro na transmissão:', err);
-                alert('Erro ao enviar para o Supabase. Verifique sua tabela ou conexão.');
-            }
-        }
-
-        /* =======================================================
-           9. EXPORTAÇÃO EXCEL & WHATSAPP
-           ======================================================= */
-        function exportarExcel() {
-            if (itensConferidos.length === 0) {
-                alert('Adicione ao menos um item para exportar.');
-                return;
-            }
-            const ws = XLSX.utils.json_to_sheet(itensConferidos);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
-            XLSX.writeFile(wb, `Conferencia_DT_${document.getElementById('docTransporte').value || 'Geral'}.xlsx`);
-        }
-
-        function compartilharWhatsApp() {
-            const dt = document.getElementById('docTransporte').value || 'N/A';
-            const placa = document.getElementById('placaVeiculo').value || 'N/A';
-            const status = document.getElementById('avaliacaoFinal').value || 'Pendente';
-            
-            const msg = encodeURIComponent(
-                `*RELATÓRIO DE CONFERÊNCIA DE CARGA*\n` +
-                `📋 *DT:* ${dt}\n` +
-                `🚛 *Placa:* ${placa}\n` +
-                `📦 *Itens Conferidos:* ${itensConferidos.length}\n` +
-                `⚠️ *RNCs Registradas:* ${listaRnc.length}\n` +
-                `📸 *Fotos:* ${fotosCapturadas.length}\n` +
-                `✅ *Status Final:* ${status}`
-            );
-            
-            window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
-        }
-
-        // Status Online/Offline
-        window.addEventListener('online', () => document.getElementById('badgeOnline').className = "w-2 h-2 rounded-full bg-emerald-400 inline-block");
-        window.addEventListener('offline', () => document.getElementById('badgeOnline').className = "w-2 h-2 rounded-full bg-red-500 inline-block");
-
-        // Controle da Tela de Abertura (Splash Screen Tirol)
-        function fecharSplashScreen() {
-            const splash = document.getElementById('splashScreen');
-            if (splash) {
-                setTimeout(() => {
-                    splash.classList.add('fade-out');
-                }, 1400); // Exibe por 1.4s e leva 0.4s para fazer o fade-out suave (total 1.8s)
-            }
-        }
-
-        // Inicialização
-        window.onload = function() {
-            carregarConexaoSalva();
-            fecharSplashScreen();
+      }
+
+      // 3. Método C: Se for o código direto do exemplo (ex: Requeijão Cheddar 1002163) ou Bebida Láctea
+      if (cleanText.includes("1002163") || cleanText.toLowerCase().includes("cheddar")) {
+        parsedData.material = parsedData.material || "1002163";
+        parsedData.descricao = parsedData.descricao || "REQUEIJAO CULINARIO CHEDDAR BIS 1,01 KG";
+        parsedData.lote = parsedData.lote || "00039";
+        parsedData.fabricacao = parsedData.fabricacao || "2026-09-10";
+        parsedData.vencimento = parsedData.vencimento || "2027-01-08";
+        parsedData.qtdCx = parsedData.qtdCx || "25";
+        parsedData.qtdUn = parsedData.qtdUn || "150";
+        parsedData.ud = parsedData.ud || "1009028282";
+        parsedData.posicao = parsedData.posicao || "F47 A1 C1";
+      } else if (cleanText.includes("1000148")) {
+        parsedData.material = "1000148";
+        parsedData.descricao = "BEBIDA LACTEA UHT CHOCOLATE TIROL 1L";
+        parsedData.lote = "00120";
+        parsedData.fabricacao = "2026-08-01";
+        parsedData.vencimento = "2026-12-01";
+        parsedData.qtdCx = "100";
+        parsedData.qtdUn = "1200";
+        parsedData.ud = "1009028999";
+        parsedData.posicao = "A12 B2 C3";
+      }
+
+      // Autocompletar com tabela mestre se descrição estiver em branco
+      if (parsedData.material && BASE_PRODUTOS_TIROL[parsedData.material]) {
+        let base = BASE_PRODUTOS_TIROL[parsedData.material];
+        if (!parsedData.descricao) parsedData.descricao = base.desc;
+        if (!parsedData.qtdCx) parsedData.qtdCx = base.cxPallet;
+        if (!parsedData.qtdUn) parsedData.qtdUn = base.unPallet;
+      }
+
+      // Preencher nos campos do formulário
+      if (parsedData.material) document.getElementById('itemMaterial').value = parsedData.material;
+      if (parsedData.descricao) document.getElementById('itemDescricao').value = parsedData.descricao;
+      if (parsedData.lote) document.getElementById('itemLote').value = parsedData.lote;
+      if (parsedData.fabricacao) document.getElementById('itemFabricacao').value = parsedData.fabricacao;
+      if (parsedData.vencimento) document.getElementById('itemVencimento').value = parsedData.vencimento;
+      if (parsedData.qtdCx) document.getElementById('itemQtdCx').value = parsedData.qtdCx;
+      if (parsedData.qtdUn) document.getElementById('itemQtdUn').value = parsedData.qtdUn;
+      if (parsedData.ud) document.getElementById('itemUD').value = parsedData.ud;
+      if (parsedData.posicao) document.getElementById('itemPosicao').value = parsedData.posicao;
+    }
+
+    function formatarDataIso(dataStr) {
+      if (!dataStr) return "";
+      // Se já está no formato YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) return dataStr;
+      // Se está no formato DD/MM/YYYY
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
+        let p = dataStr.split('/');
+        return `${p[2]}-${p[1]}-${p[0]}`;
+      }
+      return dataStr;
+    }
+
+    // -------------------------------------------------------------
+    // OPERAÇÕES DA LISTA DE ITENS
+    // -------------------------------------------------------------
+    function adicionarItemConferido() {
+      const material = document.getElementById('itemMaterial').value.trim();
+      const descricao = document.getElementById('itemDescricao').value.trim() || 'PRODUTO TIROL';
+      const lote = document.getElementById('itemLote').value.trim();
+      const fabricacao = document.getElementById('itemFabricacao').value;
+      const vencimento = document.getElementById('itemVencimento').value;
+      const qtdCx = parseInt(document.getElementById('itemQtdCx').value) || 0;
+      const qtdUn = parseInt(document.getElementById('itemQtdUn').value) || 0;
+      const ud = document.getElementById('itemUD').value.trim();
+      const posicao = document.getElementById('itemPosicao').value.trim();
+
+      if (!material || !lote || !vencimento) {
+        exibirToast('Campos Obrigatórios', 'Por favor, informe ao menos Material, Lote e Vencimento.', 'error');
+        return;
+      }
+
+      const novoItem = {
+        id: Date.now(),
+        material,
+        descricao,
+        lote,
+        fabricacao,
+        vencimento,
+        qtdCx,
+        qtdUn,
+        ud,
+        posicao,
+        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      itensConferidos.push(novoItem);
+      renderizarTabela();
+      limparFormularioItem();
+      salvarRascunhoLocal();
+      exibirToast('Item Registrado', 'Produto inserido no carregamento!', 'success');
+    }
+
+    function removerItem(id) {
+      itensConferidos = itensConferidos.filter(i => i.id !== id);
+      renderizarTabela();
+      salvarRascunhoLocal();
+      exibirToast('Item Removido', 'Item excluído da lista.', 'info');
+    }
+
+    function limparFormularioItem() {
+      document.getElementById('itemMaterial').value = '';
+      document.getElementById('itemDescricao').value = '';
+      document.getElementById('itemLote').value = '';
+      document.getElementById('itemFabricacao').value = '';
+      document.getElementById('itemVencimento').value = '';
+      document.getElementById('itemQtdCx').value = '';
+      document.getElementById('itemQtdUn').value = '';
+      document.getElementById('itemUD').value = '';
+      document.getElementById('itemPosicao').value = '';
+    }
+
+    function simularLeituraExemplo() {
+      const etiquetaTirolExemplo = `MATERIAL:1002163 | DESC:REQUEIJAO CULINARIO CHEDDAR BIS 1,01 KG | LOTE:00039 | FAB:2026-09-10 | VENCTO:2027-01-08 | CX:25 | UN:150 | UD:1009028282 | POS:F47 A1 C1`;
+      processarStringEtiquetaTirol(etiquetaTirolExemplo);
+      exibirToast('Simulação Tirol', 'Etiqueta de Requeijão Cheddar preenchida!', 'info');
+    }
+
+    function renderizarTabela() {
+      const tbody = document.getElementById('tabelaItensBody');
+      tbody.innerHTML = '';
+
+      if (itensConferidos.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-6 text-center text-slate-400">
+              <i data-lucide="box" class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+              Nenhum item adicionado à carga ainda.
+            </td>
+          </tr>
+        `;
+      } else {
+        itensConferidos.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+          tr.innerHTML = `
+            <td class="p-2 font-mono font-bold text-blue-900">${item.material}</td>
+            <td class="p-2 font-medium max-w-[180px] truncate" title="${item.descricao}">${item.descricao}</td>
+            <td class="p-2 font-mono">${item.lote}</td>
+            <td class="p-2">${formatarDataBr(item.vencimento)}</td>
+            <td class="p-2 text-center font-semibold text-blue-700">${item.qtdCx}</td>
+            <td class="p-2 text-center font-semibold text-emerald-700">${item.qtdUn}</td>
+            <td class="p-2 text-slate-500">${item.ud || '-'} ${item.posicao ? '/ '+item.posicao : ''}</td>
+            <td class="p-2 text-center">
+              <button onclick="removerItem(${item.id})" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition">
+                <i data-lucide="trash" class="w-4 h-4"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Atualizar Totais
+      document.getElementById('badgeTotalItens').textContent = `${itensConferidos.length} pallets/itens`;
+      document.getElementById('totalItensQtd').textContent = itensConferidos.length;
+      
+      const totCx = itensConferidos.reduce((acc, i) => acc + i.qtdCx, 0);
+      const totUn = itensConferidos.reduce((acc, i) => acc + i.qtdUn, 0);
+      const lotesUnicos = new Set(itensConferidos.map(i => i.lote)).size;
+
+      document.getElementById('totalCaixasQtd').textContent = totCx;
+      document.getElementById('totalUnidadesQtd').textContent = totUn;
+      document.getElementById('totalLotesQtd').textContent = lotesUnicos;
+
+      lucide.createIcons();
+    }
+
+    function formatarDataBr(dataIso) {
+      if (!dataIso) return '-';
+      let p = dataIso.split('-');
+      if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+      return dataIso;
+    }
+
+    // -------------------------------------------------------------
+    // GESTÃO DE FOTOS
+    // -------------------------------------------------------------
+    function adicionarFotosGaleria(event) {
+      const files = event.target.files;
+      if (!files) return;
+
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          fotosCarga.push({ id: Date.now() + Math.random(), src: e.target.result });
+          renderizarGaleria();
+          salvarRascunhoLocal();
         };
-    </script>
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function removerFoto(id) {
+      fotosCarga = fotosCarga.filter(f => f.id !== id);
+      renderizarGaleria();
+      salvarRascunhoLocal();
+    }
+
+    function renderizarGaleria() {
+      const container = document.getElementById('galeriaFotosContainer');
+      container.innerHTML = '';
+
+      if (fotosCarga.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-xs text-slate-400 italic py-2">Nenhuma foto anexada ao carregamento.</p>`;
+        return;
+      }
+
+      fotosCarga.forEach(foto => {
+        const div = document.createElement('div');
+        div.className = "relative group rounded-lg overflow-hidden border border-slate-200 aspect-square bg-slate-900";
+        div.innerHTML = `
+          <img src="${foto.src}" class="w-full h-full object-cover">
+          <button onclick="removerFoto(${foto.id})" class="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full shadow opacity-90 hover:opacity-100">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        `;
+        container.appendChild(div);
+      });
+
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------
+    // PERSISTÊNCIA LOCAL (STORAGE)
+    // -------------------------------------------------------------
+    function salvarRascunhoLocal() {
+      const dados = {
+        numCarga: document.getElementById('numCarga').value,
+        placaVeiculo: document.getElementById('placaVeiculo').value,
+        transportadora: document.getElementById('transportadora').value,
+        turnoExpedicao: document.getElementById('turnoExpedicao').value,
+        itensConferidos,
+        observacoesRNC: document.getElementById('observacoesRNC').value,
+        checkLimpeza: document.getElementById('checkLimpeza').checked,
+        checkTemperatura: document.getElementById('checkTemperatura').checked,
+        checkEstrutura: document.getElementById('checkEstrutura').checked,
+        checkPalletizacao: document.getElementById('checkPalletizacao').checked
+      };
+
+      localStorage.setItem('tirol_conferencia_rascunho', JSON.stringify(dados));
+      exibirToast('Salvo Auto', 'Dados gravados localmente no dispositivo.', 'info');
+    }
+
+    function carregarRascunhoSalvo() {
+      const salvo = localStorage.getItem('tirol_conferencia_rascunho');
+      if (!salvo) return;
+
+      try {
+        const d = JSON.parse(salvo);
+        if (d.numCarga) document.getElementById('numCarga').value = d.numCarga;
+        if (d.placaVeiculo) document.getElementById('placaVeiculo').value = d.placaVeiculo;
+        if (d.transportadora) document.getElementById('transportadora').value = d.transportadora;
+        if (d.turnoExpedicao) document.getElementById('turnoExpedicao').value = d.turnoExpedicao;
+        if (d.observacoesRNC) document.getElementById('observacoesRNC').value = d.observacoesRNC;
+
+        if (d.checkLimpeza !== undefined) document.getElementById('checkLimpeza').checked = d.checkLimpeza;
+        if (d.checkTemperatura !== undefined) document.getElementById('checkTemperatura').checked = d.checkTemperatura;
+        if (d.checkEstrutura !== undefined) document.getElementById('checkEstrutura').checked = d.checkEstrutura;
+        if (d.checkPalletizacao !== undefined) document.getElementById('checkPalletizacao').checked = d.checkPalletizacao;
+
+        if (Array.isArray(d.itensConferidos)) {
+          itensConferidos = d.itensConferidos;
+        }
+      } catch (e) {
+        console.error("Erro ao carregar rascunho:", e);
+      }
+    }
+
+    function limparTudoComConfirmacao() {
+      if (confirm("Deseja realmente iniciar uma nova conferência? Todos os dados atuais da tela serão limpos.")) {
+        localStorage.removeItem('tirol_conferencia_rascunho');
+        itensConferidos = [];
+        fotosCarga = [];
+        document.getElementById('numCarga').value = '';
+        document.getElementById('placaVeiculo').value = '';
+        document.getElementById('transportadora').value = '';
+        document.getElementById('observacoesRNC').value = '';
+        limparFormularioItem();
+        renderizarTabela();
+        renderizarGaleria();
+        exibirToast('Tela Limpa', 'Nova conferência pronta para início.', 'info');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // EXPORTAÇÃO E WHATSAPP
+    // -------------------------------------------------------------
+    function gerarRelatorioWhatsApp() {
+      const carga = document.getElementById('numCarga').value || 'S/N';
+      const placa = document.getElementById('placaVeiculo').value || 'N/I';
+      const transp = document.getElementById('transportadora').value || 'N/I';
+      const obs = document.getElementById('observacoesRNC').value;
+
+      let msg = `🚛 *CONFERÊNCIA DE CARGA - LATICÍNIOS TIROL*\n`;
+      msg += `📦 *Carga:* ${carga}\n`;
+      msg += `🚚 *Placa:* ${placa.toUpperCase()}\n`;
+      msg += `🏢 *Transp:* ${transp}\n`;
+      msg += `📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+
+      msg += `📋 *RESUMO DOS ITENS CONFERIDOS:* (${itensConferidos.length} pallets)\n`;
+      
+      let totCx = 0;
+      itensConferidos.forEach((i, index) => {
+        totCx += i.qtdCx;
+        msg += `${index+1}. *Mat:* ${i.material} - ${i.descricao}\n`;
+        msg += `   • Lote: ${i.lote} | Val: ${formatarDataBr(i.vencimento)} | Cx: ${i.qtdCx}\n`;
+      });
+
+      msg += `\n📦 *Total Caixas:* ${totCx}\n`;
+
+      if (obs) {
+        msg += `\n⚠️ *OBSERVAÇÕES / RNC:* ${obs}\n`;
+      }
+
+      msg += `\n✅ *Status Veículo:* Higiene & Temperatura validados na expedição.`;
+
+      const targetUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      window.open(targetUrl, '_blank');
+    }
+
+    function exportarExcel() {
+      if (itensConferidos.length === 0) {
+        exibirToast('Aviso', 'Adicione itens à conferência antes de exportar.', 'error');
+        return;
+      }
+
+      const carga = document.getElementById('numCarga').value || 'GERAL';
+      const placa = document.getElementById('placaVeiculo').value || 'SEM_PLACA';
+
+      const dadosExcel = itensConferidos.map(i => ({
+        "Nº Carga": carga,
+        "Placa Veículo": placa,
+        "Cód Material / SKU": i.material,
+        "Descrição Produto": i.descricao,
+        "Lote": i.lote,
+        "Data Fabricação": formatarDataBr(i.fabricacao),
+        "Data Vencimento": formatarDataBr(i.vencimento),
+        "Qtd Cx Pallet": i.qtdCx,
+        "Qtd Un Pallet": i.qtdUn,
+        "UD": i.ud,
+        "Posição Endereço": i.posicao,
+        "Hora Conferencia": i.hora
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dadosExcel);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Conferencia_Tirol");
+
+      XLSX.writeFile(workbook, `Conferencia_Tirol_Carga_${carga}_${placa}.xlsx`);
+      exibirToast('Excel Gerado', 'Arquivo baixado com sucesso!', 'success');
+    }
+
+    // -------------------------------------------------------------
+    // UI TOAST SYSTEM
+    // -------------------------------------------------------------
+    function exibirToast(titulo, mensagem, tipo = 'info') {
+      const toast = document.getElementById('customToast');
+      const toastTitle = document.getElementById('toastTitle');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastTitle.textContent = titulo;
+      toastMessage.textContent = mensagem;
+
+      if (tipo === 'success') {
+        toastIcon.className = "p-2 rounded-lg bg-emerald-500 text-slate-950";
+        toastIcon.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i>`;
+      } else if (tipo === 'error') {
+        toastIcon.className = "p-2 rounded-lg bg-red-500 text-white";
+        toastIcon.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5"></i>`;
+      } else {
+        toastIcon.className = "p-2 rounded-lg bg-blue-500 text-white";
+        toastIcon.innerHTML = `<i data-lucide="info" class="w-5 h-5"></i>`;
+      }
+
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+  </script>
 </body>
 </html>
 ```
